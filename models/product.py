@@ -1,0 +1,81 @@
+"""
+Product / Batch model — search medicines and available batches.
+"""
+
+from db.connection import fetch_all
+
+
+def search_products(distributor_id, query=""):
+    """Search medicines with available batches for a distributor."""
+    like_q = f"%{query}%"
+    return fetch_all(
+        """
+        SELECT
+            b.batch_id,
+            m.medicine_id,
+            m.name AS product_name,
+            m.unit,
+            m.gst_percent,
+            b.batch_no,
+            b.expiry_date,
+            b.quantity AS available_qty,
+            b.purchase_price,
+            b.mrp
+        FROM batches b
+        JOIN medicines m ON m.medicine_id = b.medicine_id
+        WHERE b.distributor_id = %s
+          AND b.quantity > 0
+          AND (m.name LIKE %s OR b.batch_no LIKE %s)
+        ORDER BY m.name, b.expiry_date
+        LIMIT 30
+        """,
+        (distributor_id, like_q, like_q),
+    )
+
+
+def get_batch_by_id(batch_id):
+    """Return batch with medicine info."""
+    from db.connection import fetch_one
+    return fetch_one(
+        """
+        SELECT
+            b.batch_id,
+            m.medicine_id,
+            m.name AS product_name,
+            m.unit,
+            m.gst_percent,
+            b.batch_no,
+            b.expiry_date,
+            b.quantity AS available_qty,
+            b.purchase_price,
+            b.mrp
+        FROM batches b
+        JOIN medicines m ON m.medicine_id = b.medicine_id
+        WHERE b.batch_id = %s
+        """,
+        (batch_id,),
+    )
+
+
+def get_all_products_for_distributor(distributor_id):
+    """Return all products with available stock for a distributor."""
+    return fetch_all(
+        """
+        SELECT
+            b.batch_id,
+            m.medicine_id,
+            m.name AS product_name,
+            m.unit,
+            m.gst_percent,
+            b.batch_no,
+            b.expiry_date,
+            b.quantity AS available_qty,
+            b.purchase_price,
+            b.mrp
+        FROM batches b
+        JOIN medicines m ON m.medicine_id = b.medicine_id
+        WHERE b.distributor_id = %s AND b.quantity > 0
+        ORDER BY m.name, b.expiry_date
+        """,
+        (distributor_id,),
+    )

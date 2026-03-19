@@ -1,0 +1,15 @@
+# Pharmacy Management System - Dependency Libraries
+
+# Install using: pip install -r requirements.txt
+
+customtkinter        # GUI
+mysql-connector-python   # Database
+pandas               # Data
+matplotlib           # Charts
+seaborn              # Visualization
+reportlab            # PDF
+openpyxl             # Excel
+pillow               # Images
+requests             # API
+schedule             # Tasks
+pyinstaller          # Packaging

@@ -1,0 +1,331 @@
+Project Brief
+
+Project Name: Pharmiq
+
+Project Type:
+Desktop-based Pharmaceutical Distribution Management System
+
+Project Overview:
+Pharmiq is a multi-user pharmaceutical distribution software designed for distributors who supply medicines to medical stores, clinics, and pharmacies. The system manages billing, inventory, customers, and compliance-related details like GST and drug licenses.
+
+Core Concept:
+- One distributor (user account) operates the system.
+- Each distributor can have multiple login users (roles like Admin, Biller, Accountant).
+- Each distributor manages their own customers (pharmacies, clinics — NOT walk-in customers).
+- The system must support multi-tenant architecture where each distributor’s data is isolated.
+
+Key Features:
+
+1. User & Role Management
+- A distributor can have multiple users (logins)
+- Roles include:
+  - Admin
+  - Biller
+  - Accountant
+- Role-based access control should be implemented
+
+2. Distributor (Company) Profile
+Each distributor has:
+- Company Name
+- Logo
+- Address
+- Phone Number
+- GST Number
+- Drug License Number
+- Bank Details
+
+This information is dynamically used in invoices and reports.
+
+3. Customer Management
+- Customers are businesses (pharmacies, clinics)
+- Each customer has:
+  - License Number (Primary Identifier)
+  - Name
+  - Address
+  - GST Number
+  - Contact Details
+
+4. Product Management
+- Products include:
+  - Product Name
+  - Batch Number
+  - Expiry Date
+  - MRP
+  - Rate
+  - GST %
+- Inventory tracking is required
+
+5. Billing System (Core Feature)
+- Generate Tax Invoices
+- Each invoice includes:
+  - Distributor details (dynamic based on logged-in user)
+  - Customer details
+  - Multiple products
+  - GST calculations (SGST + CGST)
+  - Discounts
+- Invoice numbering should be unique per distributor
+- Support Credit/Cash invoices
+
+6. Invoice Output
+- Printable A4 format
+- Export to PDF
+- Professional layout (similar to real pharma invoices)
+- Include:
+  - Logo
+  - Tax breakdown
+  - Amount in words
+  - Authorized signature
+
+7. Database Design (High-Level)
+Entities:
+- Users (Distributor + staff logins)
+- Roles
+- Customers (with license_no as key)
+- Products
+- Invoices
+- Invoice_Items
+
+8. Multi-Tenant Logic (IMPORTANT)
+- Each distributor must only access their own:
+  - Customers
+  - Products
+  - Invoices
+- Data isolation is mandatory
+
+9. Offline + Online Capability
+- System should work offline (local DB like SQLite/MySQL)
+- Future-ready for cloud sync
+
+10. Technology Stack
+- Python-based (as per requirements.txt)
+- Desktop UI (Tkinter / PyQt / Custom UI framework)
+- Database: SQLite/MySQL
+- PDF generation supported
+
+11. Design Expectations
+- Clean, minimal, professional UI
+- Fast billing workflow
+- Error-free calculations
+- Scalable architecture
+
+Goal:
+Build a reliable, scalable, and user-friendly pharmaceutical billing and distribution system that can be used by multiple distributors independently with their own branding and data.
+
+Important Notes:
+- Do NOT treat customers as walk-in buyers
+- License number is the key identifier for customers
+- One distributor = one data boundary
+- Multiple users per distributor must be supported
+
+
+
+
+
+
+
+
+
+
+PHARMIQ – ER 
+
+========================
+DISTRIBUTORS (MAIN ACCOUNT)
+========================
+distributor_id (PK)
+name
+mobile_no
+email
+status
+created_at
+
+
+========================
+LICENSES
+========================
+license_id (PK)
+distributor_id (FK → distributors.distributor_id)
+start_date
+expiry_date
+amount_paid
+status
+
+
+========================
+USERS
+========================
+user_id (PK)
+distributor_id (FK → distributors.distributor_id)
+username
+password
+temp_password
+is_first_login
+status
+
+
+========================
+ROLES
+========================
+role_id (PK)
+role_name
+# examples: Admin, Biller, Accountant
+
+
+========================
+USER_ROLES (M:N RELATION)
+========================
+user_id (FK → users.user_id)
+role_id (FK → roles.role_id)
+(PK → user_id + role_id)
+
+
+========================
+CUSTOMERS (PHARMACIES)
+========================
+license_no (PK)
+distributor_id (FK → distributors.distributor_id)
+shop_name
+license_holder_name
+mobile_no
+gst_no
+email
+status
+created_at
+
+
+========================
+SUPPLIERS
+========================
+supplier_id (PK)
+distributor_id (FK → distributors.distributor_id)
+name
+mobile_no
+gst_no
+
+
+========================
+MEDICINES
+========================
+medicine_id (PK)
+name
+unit
+gst_percent
+
+
+========================
+BATCHES
+========================
+batch_id (PK)
+medicine_id (FK → medicines.medicine_id)
+supplier_id (FK → suppliers.supplier_id)
+distributor_id (FK → distributors.distributor_id)
+batch_no
+expiry_date
+quantity
+purchase_price
+mrp
+
+
+========================
+PURCHASES
+========================
+purchase_id (PK)
+supplier_id (FK → suppliers.supplier_id)
+distributor_id (FK → distributors.distributor_id)
+user_id (FK → users.user_id)
+date
+total_amount
+
+
+========================
+PURCHASE_ITEMS
+========================
+purchase_item_id (PK)
+purchase_id (FK → purchases.purchase_id)
+batch_id (FK → batches.batch_id)
+quantity
+price
+
+
+========================
+SALES
+========================
+sale_id (PK)
+distributor_id (FK → distributors.distributor_id)
+user_id (FK → users.user_id)
+license_no (FK → customers.license_no)
+date
+total_amount
+gst_amount
+discount
+grand_total
+
+
+========================
+SALE_ITEMS
+========================
+sale_item_id (PK)
+sale_id (FK → sales.sale_id)
+batch_id (FK → batches.batch_id)
+quantity
+price
+gst_percent
+gst_value
+
+
+=================================================
+RELATIONSHIPS
+=================================================
+
+distributors (1) ------ (M) users
+distributors (1) ------ (M) licenses
+distributors (1) ------ (M) customers
+distributors (1) ------ (M) suppliers
+distributors (1) ------ (M) purchases
+distributors (1) ------ (M) sales
+distributors (1) ------ (M) batches
+
+users (M) ------ (M) roles  [via user_roles]
+
+customers (1) ------ (M) sales
+
+suppliers (1) ------ (M) purchases
+suppliers (1) ------ (M) batches
+
+medicines (1) ------ (M) batches
+
+purchases (1) ------ (M) purchase_items
+batches (1) ------ (M) purchase_items
+
+sales (1) ------ (M) sale_items
+batches (1) ------ (M) sale_items
+
+
+
+
+
+SYSTEM FLOW
+
+Developer →
+   Create Distributor
+   Assign License
+
+Distributor →
+   Create Users
+   Assign Roles (Admin/Biller/Accountant)
+
+Users →
+   Login → License Check
+
+Then:
+   Manage Customers
+   Manage Suppliers
+   Purchase Stock
+   Do Sales
+   Generate Reports
+
+
+
+
+
+
+
