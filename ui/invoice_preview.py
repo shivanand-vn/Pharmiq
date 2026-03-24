@@ -20,7 +20,7 @@ class InvoicePreview(ctk.CTkToplevel):
         self.title(f"Invoice {invoice.get('invoice_no', '')} — Preview")
         self.geometry("500x350")
         self.resizable(False, False)
-        self.configure(fg_color="#0f0f1a")
+        self.configure(fg_color="#F8F9FA")
 
         # Center on screen
         self.update_idletasks()
@@ -32,18 +32,18 @@ class InvoicePreview(ctk.CTkToplevel):
 
     def _build_ui(self):
         # Header
-        header = ctk.CTkFrame(self, fg_color="#1a1a2e", corner_radius=0, height=50)
+        header = ctk.CTkFrame(self, fg_color="#212529", corner_radius=0, height=50)
         header.pack(fill="x")
         header.pack_propagate(False)
 
         ctk.CTkLabel(
             header, text="🧾 Invoice Generated Successfully!",
-            font=ctk.CTkFont(size=16, weight="bold"), text_color="#00d4ff",
+            font=ctk.CTkFont(size=16, weight="bold"), text_color="#4361EE",
         ).pack(pady=12)
 
         # Info card
-        card = ctk.CTkFrame(self, fg_color="#16213e", corner_radius=12,
-                             border_width=1, border_color="#2a2a4a")
+        card = ctk.CTkFrame(self, fg_color="#212529", corner_radius=12,
+                             border_width=1, border_color="#DEE2E6")
         card.pack(padx=20, pady=15, fill="both", expand=True)
 
         details = [
@@ -58,9 +58,9 @@ class InvoicePreview(ctk.CTkToplevel):
             row = ctk.CTkFrame(card, fg_color="transparent")
             row.pack(fill="x", padx=15, pady=3)
             ctk.CTkLabel(row, text=label, font=ctk.CTkFont(size=11),
-                          text_color="#888899", width=100, anchor="e").pack(side="left")
+                          text_color="#868E96", width=100, anchor="e").pack(side="left")
             ctk.CTkLabel(row, text=value, font=ctk.CTkFont(size=11, weight="bold"),
-                          text_color="#ffffff", anchor="w").pack(side="left", padx=10)
+                          text_color="#212529", anchor="w").pack(side="left", padx=10)
 
         # Buttons
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -69,21 +69,21 @@ class InvoicePreview(ctk.CTkToplevel):
         ctk.CTkButton(
             btn_frame, text="📂  Open PDF", height=40, width=140,
             font=ctk.CTkFont(size=13, weight="bold"), corner_radius=10,
-            fg_color="#00d4ff", hover_color="#00a8cc", text_color="#0f0f1a",
+            fg_color="#4361EE", hover_color="#3A0CA3", text_color="#F8F9FA",
             command=self._open,
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             btn_frame, text="🖨️  Print", height=40, width=100,
             font=ctk.CTkFont(size=13, weight="bold"), corner_radius=10,
-            fg_color="#6c5ce7", hover_color="#5a4bd1",
+            fg_color="#7209B7", hover_color="#560BAD",
             command=self._print,
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             btn_frame, text="Close", height=40, width=80,
             font=ctk.CTkFont(size=12), corner_radius=10,
-            fg_color="#333355", hover_color="#444466",
+            fg_color="#E9ECEF", hover_color="#CED4DA",
             command=self.destroy,
         ).pack(side="right", padx=5)
 

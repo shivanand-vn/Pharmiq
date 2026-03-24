@@ -7,15 +7,15 @@ from tkinter import messagebox
 from db.connection import execute_query
 
 # ── Colour palette ──
-BG_DARK = "#0f0f1a"
-CARD_BG = "#16213e"
-BORDER_CLR = "#2a2a4a"
-ACCENT = "#00d4ff"
-ACCENT_HOVER = "#00a8cc"
-TEXT_WHITE = "#ffffff"
-TEXT_MUTED = "#888899"
-ENTRY_BG = "#0f0f1a"
-SUCCESS = "#00b894"
+BG_DARK = "#F8F9FA"
+CARD_BG = "#212529"
+BORDER_CLR = "#DEE2E6"
+ACCENT = "#4361EE"
+ACCENT_HOVER = "#3A0CA3"
+TEXT_WHITE = "#212529"
+TEXT_MUTED = "#868E96"
+ENTRY_BG = "#F8F9FA"
+SUCCESS = "#2DC653"
 
 
 class AddPartyForm(ctk.CTkFrame):
@@ -30,14 +30,14 @@ class AddPartyForm(ctk.CTkFrame):
 
     def _build_ui(self):
         # ── Top bar ──
-        top = ctk.CTkFrame(self, fg_color="#1a1a2e", corner_radius=0, height=50)
+        top = ctk.CTkFrame(self, fg_color="#212529", corner_radius=0, height=50)
         top.pack(fill="x")
         top.pack_propagate(False)
 
         ctk.CTkButton(
             top, text="← Back", width=80, height=30,
             font=ctk.CTkFont(size=11), corner_radius=8,
-            fg_color="#333355", hover_color="#444466",
+            fg_color="#E9ECEF", hover_color="#CED4DA",
             command=self._go_back,
         ).pack(side="left", padx=10, pady=10)
 
@@ -78,7 +78,7 @@ class AddPartyForm(ctk.CTkFrame):
         ctk.CTkButton(
             btn_frame, text="✅  Save Customer", height=45, width=200,
             font=ctk.CTkFont(size=14, weight="bold"), corner_radius=10,
-            fg_color=SUCCESS, hover_color="#009975", text_color=TEXT_WHITE,
+            fg_color=SUCCESS, hover_color="#208B3A", text_color=TEXT_WHITE,
             command=self._save_customer,
         ).pack(side="left", padx=5)
 

@@ -26,7 +26,7 @@ class PharmIQApp(ctk.CTk):
         self.title("PharmIQ — Pharmaceutical Distribution Management")
         self.geometry("1200x750")
         self.minsize(1000, 650)
-        self.configure(fg_color="#0f0f1a")
+        self.configure(fg_color="#F8F9FA")
 
         # Center on screen
         self.update_idletasks()

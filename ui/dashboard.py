@@ -15,7 +15,7 @@ class Dashboard(ctk.CTkFrame):
     """Main dashboard frame showing distributor branding and navigation."""
 
     def __init__(self, master, user_context, app_ref):
-        super().__init__(master, fg_color="#0f0f1a")
+        super().__init__(master, fg_color="#F8F9FA")
         self.user = user_context
         self.app = app_ref
         self.distributor = get_distributor_by_id(self.user["distributor_id"])
@@ -26,7 +26,7 @@ class Dashboard(ctk.CTkFrame):
         # ══════════════════════════════════════════════
         # TOP BAR: Branding
         # ══════════════════════════════════════════════
-        top_bar = ctk.CTkFrame(self, fg_color="#1a1a2e", corner_radius=0, height=70)
+        top_bar = ctk.CTkFrame(self, fg_color="#212529", corner_radius=0, height=70)
         top_bar.pack(fill="x")
         top_bar.pack_propagate(False)
 
@@ -47,7 +47,7 @@ class Dashboard(ctk.CTkFrame):
         ctk.CTkLabel(
             logo_frame, text=f"💊 {dist_name}",
             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
-            text_color="#00d4ff",
+            text_color="#4361EE",
         ).pack(side="left")
 
         # User info (right)
@@ -55,12 +55,12 @@ class Dashboard(ctk.CTkFrame):
         user_frame.pack(side="right", padx=15)
         ctk.CTkLabel(
             user_frame, text=f"👤 {self.user.get('username', '')}",
-            font=ctk.CTkFont(size=13), text_color="#aabbcc",
+            font=ctk.CTkFont(size=13), text_color="#495057",
         ).pack(side="left", padx=(0, 10))
         ctk.CTkButton(
             user_frame, text="Logout", width=70, height=30,
             font=ctk.CTkFont(size=11), corner_radius=8,
-            fg_color="#333355", hover_color="#444466",
+            fg_color="#E9ECEF", hover_color="#CED4DA",
             command=self._logout,
         ).pack(side="left")
 
@@ -71,13 +71,13 @@ class Dashboard(ctk.CTkFrame):
         content.pack(fill="both", expand=True, padx=20, pady=20)
 
         # ── Welcome section ──
-        welcome = ctk.CTkFrame(content, fg_color="#16213e", corner_radius=16,
-                                border_width=1, border_color="#2a2a4a")
+        welcome = ctk.CTkFrame(content, fg_color="#212529", corner_radius=16,
+                                border_width=1, border_color="#DEE2E6")
         welcome.pack(fill="x", pady=(0, 15))
 
         ctk.CTkLabel(
             welcome, text=f"Welcome to {dist_name}",
-            font=ctk.CTkFont(size=22, weight="bold"), text_color="#ffffff",
+            font=ctk.CTkFont(size=22, weight="bold"), text_color="#212529",
         ).pack(pady=(20, 5), padx=20, anchor="w")
 
         dist_info = ""
@@ -101,10 +101,10 @@ class Dashboard(ctk.CTkFrame):
         btn_frame.pack(fill="x", pady=(0, 15))
 
         buttons = [
-            ("📝  New Invoice", "#00d4ff", "#00a8cc", self._new_invoice),
-            ("📦  Add Stock", "#00b894", "#009975", self._add_stock),
+            ("📝  New Invoice", "#4361EE", "#3A0CA3", self._new_invoice),
+            ("📦  Add Stock", "#2DC653", "#208B3A", self._add_stock),
             ("👥  Add Party", "#fdcb6e", "#e1b12c", self._add_party),
-            ("📋  History", "#6c5ce7", "#5a4bd1", self._show_history),
+            ("📋  History", "#7209B7", "#560BAD", self._show_history),
             ("📊  Reports", "#ff7675", "#d63031", self._show_reports),
         ]
 
@@ -112,20 +112,20 @@ class Dashboard(ctk.CTkFrame):
             btn = ctk.CTkButton(
                 btn_frame, text=text, height=55,
                 font=ctk.CTkFont(size=14, weight="bold"), corner_radius=12,
-                fg_color=fg, hover_color=hover, text_color="#ffffff" if fg != "#fdcb6e" else "#0f0f1a",
+                fg_color=fg, hover_color=hover, text_color="#212529" if fg != "#fdcb6e" else "#F8F9FA",
                 command=cmd,
             )
             btn.grid(row=0, column=i, padx=5, sticky="ew")
         btn_frame.columnconfigure(list(range(len(buttons))), weight=1)
 
         # ── Recent invoices ──
-        recent_frame = ctk.CTkFrame(content, fg_color="#16213e", corner_radius=16,
-                                     border_width=1, border_color="#2a2a4a")
+        recent_frame = ctk.CTkFrame(content, fg_color="#212529", corner_radius=16,
+                                     border_width=1, border_color="#DEE2E6")
         recent_frame.pack(fill="both", expand=True)
 
         ctk.CTkLabel(
             recent_frame, text="📄 Recent Invoices",
-            font=ctk.CTkFont(size=16, weight="bold"), text_color="#ffffff",
+            font=ctk.CTkFont(size=16, weight="bold"), text_color="#212529",
         ).pack(pady=(15, 10), padx=15, anchor="w")
 
         self.invoices_scroll = ctk.CTkScrollableFrame(
@@ -153,7 +153,7 @@ class Dashboard(ctk.CTkFrame):
             return
 
         # Header
-        header = ctk.CTkFrame(self.invoices_scroll, fg_color="#1a1a2e", corner_radius=8, height=35)
+        header = ctk.CTkFrame(self.invoices_scroll, fg_color="#212529", corner_radius=8, height=35)
         header.pack(fill="x", pady=(0, 5))
         header.pack_propagate(False)
         cols = [("Invoice No", 120), ("Date", 100), ("Customer", 300),
@@ -161,12 +161,12 @@ class Dashboard(ctk.CTkFrame):
         for text, w in cols:
             ctk.CTkLabel(
                 header, text=text, width=w, font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#aabbcc", anchor="w" if text == "Customer" else "center"
+                text_color="#495057", anchor="w" if text == "Customer" else "center"
             ).pack(side="left", padx=5)
 
         # Rows
         for inv in invoices:
-            row = ctk.CTkFrame(self.invoices_scroll, fg_color="#0f0f1a", corner_radius=6, height=32)
+            row = ctk.CTkFrame(self.invoices_scroll, fg_color="#F8F9FA", corner_radius=6, height=32)
             row.pack(fill="x", pady=1)
             row.pack_propagate(False)
 
@@ -183,7 +183,7 @@ class Dashboard(ctk.CTkFrame):
             ]
             for v, (col_name, w) in zip(vals, cols[:-1]):
                 ctk.CTkLabel(
-                    row, text=v, width=w, font=ctk.CTkFont(size=10), text_color="#ccccdd",
+                    row, text=v, width=w, font=ctk.CTkFont(size=10), text_color="#495057",
                     anchor="w" if col_name == "Customer" else "center"
                 ).pack(side="left", padx=5)
 
@@ -196,7 +196,7 @@ class Dashboard(ctk.CTkFrame):
             ctk.CTkButton(
                 action_frame, text="PDF", width=40, height=24,
                 font=ctk.CTkFont(size=10), corner_radius=6,
-                fg_color="#333355", hover_color="#444466",
+                fg_color="#E9ECEF", hover_color="#CED4DA",
                 command=lambda iid=inv_id: self._view_invoice_pdf(iid),
             ).pack(expand=True)
 
