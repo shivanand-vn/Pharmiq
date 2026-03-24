@@ -6,6 +6,7 @@ Authenticates users and passes context to the dashboard.
 import customtkinter as ctk
 from tkinter import messagebox
 from db.connection import fetch_one
+from models.user import get_user_roles
 
 
 class LoginWindow(ctk.CTkFrame):
@@ -106,6 +107,9 @@ class LoginWindow(ctk.CTkFrame):
                 (username, password),
             )
             if user:
+                roles = get_user_roles(user["user_id"])
+                user["role"] = roles[0] if roles else "Admin"
+                user["roles"] = roles
                 self.on_login_success(user)
             else:
                 self.status_label.configure(text="Invalid username or password.")

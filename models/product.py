@@ -79,3 +79,29 @@ def get_all_products_for_distributor(distributor_id):
         """,
         (distributor_id,),
     )
+
+
+def get_inventory_list(distributor_id, search_q=""):
+    """Return all inventory for a distributor matching the search query."""
+    like_q = f"%{search_q}%"
+    return fetch_all(
+        """
+        SELECT
+            b.batch_id,
+            m.name AS product_name,
+            m.unit AS category,
+            s.name AS supplier_name,
+            b.batch_no,
+            b.expiry_date,
+            b.quantity,
+            b.purchase_price,
+            b.mrp
+        FROM batches b
+        JOIN medicines m ON m.medicine_id = b.medicine_id
+        LEFT JOIN suppliers s ON b.supplier_id = s.supplier_id
+        WHERE b.distributor_id = %s
+          AND (m.name LIKE %s OR b.batch_no LIKE %s)
+        ORDER BY m.name ASC
+        """,
+        (distributor_id, like_q, like_q),
+    )
