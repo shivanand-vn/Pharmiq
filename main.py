@@ -69,18 +69,9 @@ class PharmIQApp(ctk.CTk):
             self.current_frame.destroy()
             self.current_frame = None
 
-        # Show a placeholder in main window
-        placeholder = ctk.CTkFrame(self, fg_color="#0f0f1a")
-        placeholder.pack(fill="both", expand=True)
-        ctk.CTkLabel(
-            placeholder, text="💊 PharmIQ",
-            font=ctk.CTkFont(size=36, weight="bold"), text_color="#16213e",
-        ).pack(expand=True)
-        self.current_frame = placeholder
-
-        # Open login window
-        login = LoginWindow(self, on_login_success=self._on_login)
-        login.grab_set()
+        # Show login window directly in main frame
+        self.current_frame = LoginWindow(self, on_login_success=self._on_login)
+        self.current_frame.pack(fill="both", expand=True)
 
     def _on_login(self, user):
         """Handle successful login."""

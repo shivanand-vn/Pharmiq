@@ -8,25 +8,51 @@ from mysql.connector import Error
 
 def get_next_invoice_no(distributor_id):
     """
-    Generate the next invoice number for a distributor.
+    Generate the next invoice number for a distributor, filling any gaps.
     Format: RP<5-digit sequential> — e.g. RP00001, RP00002
     """
-    row = fetch_one(
-        """
-        SELECT invoice_no FROM invoices
-        WHERE distributor_id = %s
-        ORDER BY invoice_id DESC
-        LIMIT 1
-        """,
+    rows = fetch_all(
+        "SELECT invoice_no FROM invoices WHERE distributor_id = %s",
         (distributor_id,),
     )
-    if row and row["invoice_no"]:
-        # Extract numeric part
-        num_part = "".join(filter(str.isdigit, row["invoice_no"]))
-        next_num = int(num_part) + 1 if num_part else 1
-    else:
-        next_num = 1
+    used_nums = []
+    for row in rows:
+        inv_str = row.get("invoice_no")
+        if inv_str:
+            num_part = "".join(filter(str.isdigit, inv_str))
+            if num_part:
+                used_nums.append(int(num_part))
+    
+    used_nums.sort()
+    next_num = 1
+    for num in used_nums:
+        if num == next_num:
+            next_num += 1
+        elif num > next_num:
+            break
+            
     return f"RP{next_num:05d}"
+
+
+def get_next_order_no(distributor_id):
+    """
+    Generate the next order number based on the highest numeric order_no in the db.
+    """
+    rows = fetch_all(
+        "SELECT order_no FROM invoices WHERE distributor_id = %s",
+        (distributor_id,),
+    )
+    max_num = 0
+    for row in rows:
+        order_str = row.get("order_no")
+        if order_str:
+            num_part = "".join(filter(str.isdigit, order_str))
+            if num_part:
+                num = int(num_part)
+                if num > max_num:
+                    max_num = num
+    
+    return str(max_num + 1)
 
 
 def create_invoice(invoice_data, items_data):

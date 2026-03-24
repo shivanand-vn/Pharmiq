@@ -102,19 +102,21 @@ class Dashboard(ctk.CTkFrame):
 
         buttons = [
             ("📝  New Invoice", "#00d4ff", "#00a8cc", self._new_invoice),
-            ("📋  Invoice History", "#6c5ce7", "#5a4bd1", self._show_history),
-            ("📊  Reports", "#00b894", "#00a381", self._show_reports),
+            ("📦  Add Stock", "#00b894", "#009975", self._add_stock),
+            ("👥  Add Party", "#fdcb6e", "#e1b12c", self._add_party),
+            ("📋  History", "#6c5ce7", "#5a4bd1", self._show_history),
+            ("📊  Reports", "#ff7675", "#d63031", self._show_reports),
         ]
 
         for i, (text, fg, hover, cmd) in enumerate(buttons):
             btn = ctk.CTkButton(
-                btn_frame, text=text, height=55, width=200,
+                btn_frame, text=text, height=55,
                 font=ctk.CTkFont(size=14, weight="bold"), corner_radius=12,
-                fg_color=fg, hover_color=hover, text_color="#ffffff",
+                fg_color=fg, hover_color=hover, text_color="#ffffff" if fg != "#fdcb6e" else "#0f0f1a",
                 command=cmd,
             )
-            btn.grid(row=0, column=i, padx=8, sticky="ew")
-        btn_frame.columnconfigure((0, 1, 2), weight=1)
+            btn.grid(row=0, column=i, padx=5, sticky="ew")
+        btn_frame.columnconfigure(list(range(len(buttons))), weight=1)
 
         # ── Recent invoices ──
         recent_frame = ctk.CTkFrame(content, fg_color="#16213e", corner_radius=16,
@@ -154,13 +156,13 @@ class Dashboard(ctk.CTkFrame):
         header = ctk.CTkFrame(self.invoices_scroll, fg_color="#1a1a2e", corner_radius=8, height=35)
         header.pack(fill="x", pady=(0, 5))
         header.pack_propagate(False)
-        cols = [("Invoice No", 0.15), ("Date", 0.15), ("Customer", 0.35),
-                ("Amount", 0.15), ("Payment", 0.10), ("Action", 0.10)]
+        cols = [("Invoice No", 120), ("Date", 100), ("Customer", 300),
+                ("Amount", 120), ("Payment", 100), ("Action", 80)]
         for text, w in cols:
             ctk.CTkLabel(
-                header, text=text, font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#aabbcc",
-            ).pack(side="left", expand=True)
+                header, text=text, width=w, font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="#aabbcc", anchor="w" if text == "Customer" else "center"
+            ).pack(side="left", padx=5)
 
         # Rows
         for inv in invoices:
@@ -179,19 +181,24 @@ class Dashboard(ctk.CTkFrame):
                 f"₹{float(inv.get('grand_total', 0)):,.2f}",
                 str(inv.get("payment_type", "")),
             ]
-            for v in vals:
+            for v, (col_name, w) in zip(vals, cols[:-1]):
                 ctk.CTkLabel(
-                    row, text=v, font=ctk.CTkFont(size=10), text_color="#ccccdd",
-                ).pack(side="left", expand=True)
+                    row, text=v, width=w, font=ctk.CTkFont(size=10), text_color="#ccccdd",
+                    anchor="w" if col_name == "Customer" else "center"
+                ).pack(side="left", padx=5)
 
-            # View PDF button
+            # View PDF button (Action cell)
+            action_frame = ctk.CTkFrame(row, width=cols[-1][1], fg_color="transparent")
+            action_frame.pack_propagate(False)
+            action_frame.pack(side="left", padx=5)
+            
             inv_id = inv.get("invoice_id")
             ctk.CTkButton(
-                row, text="PDF", width=40, height=24,
+                action_frame, text="PDF", width=40, height=24,
                 font=ctk.CTkFont(size=10), corner_radius=6,
                 fg_color="#333355", hover_color="#444466",
                 command=lambda iid=inv_id: self._view_invoice_pdf(iid),
-            ).pack(side="left", padx=5)
+            ).pack(expand=True)
 
     def _new_invoice(self):
         """Open the invoice creation form."""
@@ -200,6 +207,22 @@ class Dashboard(ctk.CTkFrame):
         for widget in self.winfo_children():
             widget.destroy()
         form = InvoiceForm(self, self.user, self.distributor, self.app)
+        form.pack(fill="both", expand=True)
+
+    def _add_stock(self):
+        """Open the add stock form."""
+        from ui.add_stock_form import AddStockForm
+        for widget in self.winfo_children():
+            widget.destroy()
+        form = AddStockForm(self.master, self.user, self.app)
+        form.pack(fill="both", expand=True)
+
+    def _add_party(self):
+        """Open the add party form."""
+        from ui.add_party_form import AddPartyForm
+        for widget in self.winfo_children():
+            widget.destroy()
+        form = AddPartyForm(self.master, self.user, self.app)
         form.pack(fill="both", expand=True)
 
     def _show_history(self):

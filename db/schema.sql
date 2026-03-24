@@ -26,19 +26,6 @@ CREATE TABLE IF NOT EXISTS distributors (
 ) ENGINE=InnoDB;
 
 -- ----------------------------
--- LICENSES
--- ----------------------------
-CREATE TABLE IF NOT EXISTS licenses (
-    license_id INT AUTO_INCREMENT PRIMARY KEY,
-    distributor_id INT NOT NULL,
-    start_date DATE,
-    expiry_date DATE,
-    amount_paid DECIMAL(10,2),
-    status ENUM('active','expired','suspended') DEFAULT 'active',
-    FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id)
-) ENGINE=InnoDB;
-
--- ----------------------------
 -- USERS
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS users (

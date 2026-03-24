@@ -91,11 +91,11 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     Returns: absolute path to the generated PDF file.
     """
     if output_path is None:
-        output_dir = os.path.join(tempfile.gettempdir(), "pharmiq_invoices")
+        output_dir = r"F:\Pharmiq\Invoice"
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(
             output_dir,
-            f"Invoice_{invoice['invoice_no']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            f"{invoice['invoice_no']}.pdf"
         )
 
     st = _styles()

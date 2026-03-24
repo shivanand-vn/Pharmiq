@@ -8,26 +8,12 @@ from tkinter import messagebox
 from db.connection import fetch_one
 
 
-class LoginWindow(ctk.CTkToplevel):
+class LoginWindow(ctk.CTkFrame):
     """Login window for PharmIQ application."""
 
     def __init__(self, master, on_login_success):
-        super().__init__(master)
+        super().__init__(master, fg_color="#0f0f1a")
         self.on_login_success = on_login_success
-
-        # ── Window setup ──
-        self.title("PharmIQ — Login")
-        self.geometry("480x520")
-        self.resizable(False, False)
-        self.configure(fg_color="#0f0f1a")
-
-        # Center on screen
-        self.update_idletasks()
-        x = (self.winfo_screenwidth() - 480) // 2
-        y = (self.winfo_screenheight() - 520) // 2
-        self.geometry(f"+{x}+{y}")
-
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._build_ui()
 
@@ -120,27 +106,11 @@ class LoginWindow(ctk.CTkToplevel):
                 (username, password),
             )
             if user:
-                # Check license
-                license_info = fetch_one(
-                    """
-                    SELECT * FROM licenses
-                    WHERE distributor_id = %s AND status = 'active'
-                      AND expiry_date >= CURDATE()
-                    ORDER BY expiry_date DESC LIMIT 1
-                    """,
-                    (user["distributor_id"],),
-                )
-                if license_info:
-                    self.on_login_success(user)
-                    self.destroy()
-                else:
-                    self.status_label.configure(text="License expired or inactive. Contact admin.")
+                self.on_login_success(user)
             else:
                 self.status_label.configure(text="Invalid username or password.")
+                self.login_btn.configure(state="normal", text="Login")
         except Exception as e:
             self.status_label.configure(text=f"Database error: {str(e)[:50]}")
-        finally:
             self.login_btn.configure(state="normal", text="Login")
 
-    def _on_close(self):
-        self.master.destroy()

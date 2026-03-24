@@ -31,20 +31,12 @@ VALUES (2, 'AR PHARMA DISTRIBUTORS', '9988776655', 'arpharma@email.com',
     'College Road Branch, Dharwad', 'arpharma@upi', 'A.R. Patil', 'active');
 
 -- ----------------------------
--- LICENSES
--- ----------------------------
-INSERT IGNORE INTO licenses (license_id, distributor_id, start_date, expiry_date, amount_paid, status)
-VALUES
-(1, 1, '2025-01-01', '2026-12-31', 5000.00, 'active'),
-(2, 2, '2025-06-01', '2026-12-31', 5000.00, 'active');
-
--- ----------------------------
 -- USERS (password = 'admin123' for both)
 -- ----------------------------
 INSERT IGNORE INTO users (user_id, distributor_id, username, password, is_first_login, status)
 VALUES
 (1, 1, 'svadmin', 'admin123', 0, 'active'),
-(2, 1, 'svbiller', 'bill123', 0, 'active'),
+(2, 1, 'svbiller', '+', 0, 'active'),
 (3, 2, 'aradmin', 'admin123', 0, 'active');
 
 -- ----------------------------
@@ -115,4 +107,15 @@ INSERT IGNORE INTO batches (batch_id, medicine_id, supplier_id, distributor_id, 
 VALUES
 (9,  9, 3, 2, 'RAN150G88', '2027-04-30', 700, 18.00, 30.00),
 (10, 10, 3, 2, 'DOL650H99', '2027-05-31', 900, 20.00, 35.00),
-(11, 1,  3, 2, 'GLI500I10', '2026-08-31', 400, 215.00, 305.00)
+(11, 1,  3, 2, 'GLI500I10', '2026-08-31', 400, 215.00, 305.00),
+
+-- New dummy batches for supplier 1, distributor 1
+(12, 9, 1, 1, 'RAN150K12', '2026-05-30', 1000, 18.50, 31.00),
+(13, 10, 2, 1, 'DOL650M34', '2026-07-31', 2000, 21.00, 36.00),
+(14, 2, 1, 1, 'AMX2024B02', '2025-12-31', 500, 85.00, 120.50),
+(15, 3, 1, 1, 'PCM650A23', '2026-11-30', 1200, 15.50, 25.50),
+(16, 4, 1, 1, 'CET10B034', '2027-02-28', 1500, 12.50, 22.50),
+(17, 5, 2, 1, 'PAN40C045', '2026-04-30', 2500, 46.00, 69.50),
+(18, 6, 2, 1, 'AZI500D56', '2027-01-31', 3500, 79.00, 116.00),
+(19, 7, 1, 1, 'MET500E67', '2026-10-31', 4000, 8.50, 16.00),
+(20, 8, 2, 1, 'OME20F078', '2027-05-31', 4500, 33.00, 53.00);

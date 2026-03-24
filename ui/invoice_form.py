@@ -9,6 +9,7 @@ from datetime import date
 
 from models.customer import search_customers, get_customer_by_license
 from models.product import search_products, get_batch_by_id
+from models.invoice import get_next_order_no
 from services.invoice_service import calculate_item_amount, calculate_invoice_totals, create_full_invoice
 from services.pdf_generator import generate_invoice_pdf, open_pdf
 from models.distributor import get_distributor_by_id
@@ -101,6 +102,13 @@ class InvoiceForm(ctk.CTkFrame):
         self.order_entry = ctk.CTkEntry(row1, width=120, height=30, font=ctk.CTkFont(size=11),
                                          fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_WHITE)
         self.order_entry.pack(side="left", padx=(5, 15))
+        
+        # Pre-fill Order No
+        try:
+            next_order = get_next_order_no(self.user["distributor_id"])
+            self.order_entry.insert(0, next_order)
+        except Exception:
+            self.order_entry.insert(0, "1")
 
         # LR No
         ctk.CTkLabel(row1, text="L.R No:", font=ctk.CTkFont(size=11),
