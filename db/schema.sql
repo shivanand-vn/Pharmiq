@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     distributor_id INT NOT NULL,
     username VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100),
+    mobile_no VARCHAR(15),
     password VARCHAR(255) NOT NULL,
     temp_password VARCHAR(255),
     is_first_login TINYINT(1) DEFAULT 1,

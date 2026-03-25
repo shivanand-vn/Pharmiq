@@ -37,8 +37,16 @@ def get_all_users_with_roles(distributor_id):
     return users
 
 
-def create_user(distributor_id, username, password, role_name):
+def create_user(distributor_id, username, password, role_name, name="", mobile_no=""):
     """Create a new user and assign a role."""
+    # Format username: lower case, remove spaces
+    username = username.strip().lower().replace(" ", "")
+
+    # Check existence
+    existing = fetch_one("SELECT user_id FROM users WHERE username = %s", (username,))
+    if existing:
+        raise ValueError(f"Username '{username}' already exists.")
+
     # 1. Ensure role exists or get its ID
     role_row = fetch_one("SELECT role_id FROM roles WHERE role_name = %s", (role_name,))
     if not role_row:
@@ -52,10 +60,10 @@ def create_user(distributor_id, username, password, role_name):
     # 2. Create the user
     execute_query(
         """
-        INSERT INTO users (distributor_id, username, password, status)
-        VALUES (%s, %s, %s, 'active')
+        INSERT INTO users (distributor_id, username, password, name, mobile_no, status)
+        VALUES (%s, %s, %s, %s, %s, 'active')
         """,
-        (distributor_id, username, password)
+        (distributor_id, username, password, name, mobile_no)
     )
     
     # Get the new user ID
