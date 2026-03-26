@@ -107,7 +107,7 @@ class UserView(ctk.CTkFrame):
             status = str(row.get("status", "active")).title()
 
             vals = [
-                (str(user_id), 100, TEXT_WHITE),
+                (f"U_{user_id:03d}", 100, TEXT_WHITE),
                 (username, 200, TEXT_WHITE),
                 (roles_str, 250, "#4B5563"),
                 (status, 120, SUCCESS if status=="Active" else DANGER)

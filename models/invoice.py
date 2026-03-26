@@ -9,7 +9,7 @@ from mysql.connector import Error
 def get_next_invoice_no(distributor_id):
     """
     Generate the next invoice number for a distributor, filling any gaps.
-    Format: RP<5-digit sequential> — e.g. RP00001, RP00002
+    Format: I_<3-digit sequential> — e.g. I_001, I_002
     """
     rows = fetch_all(
         "SELECT invoice_no FROM invoices WHERE distributor_id = %s",
@@ -31,7 +31,7 @@ def get_next_invoice_no(distributor_id):
         elif num > next_num:
             break
             
-    return f"RP{next_num:05d}"
+    return f"I_{next_num:03d}"
 
 
 def get_next_order_no(distributor_id):
