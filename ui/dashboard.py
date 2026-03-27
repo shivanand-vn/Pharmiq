@@ -95,26 +95,35 @@ class Dashboard(ctk.CTkFrame):
             )
             btn.pack(pady=4, padx=15, fill="x")
 
-        # Bottom Profile Section
+        # Bottom Profile + Logout Section
         bottom_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         bottom_frame.pack(side="bottom", pady=20, padx=15, fill="x")
-        
+
+        # Logout button
+        ctk.CTkButton(
+            bottom_frame, text="🚪  Logout",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#E74C3C", hover_color="#C0392B",
+            text_color="#FFFFFF", corner_radius=8,
+            height=40,
+            command=self._logout,
+        ).pack(fill="x", pady=(0, 12))
+
+        # User info row
+        user_row = ctk.CTkFrame(bottom_frame, fg_color="transparent")
+        user_row.pack(fill="x")
+
         avatar_lbl = ctk.CTkLabel(
-            bottom_frame, text="👤", width=36, height=36, 
+            user_row, text="👤", width=36, height=36, 
             fg_color="#F8B195", corner_radius=18, text_color="#FFFFFF"
         )
         avatar_lbl.pack(side="left", padx=(0, 10))
         
         user_name = self.user.get('username', 'Admin User')[:12]
         ctk.CTkLabel(
-            bottom_frame, text=user_name,
+            user_row, text=user_name,
             font=ctk.CTkFont(size=14, weight="bold"), text_color="#FFFFFF"
         ).pack(side="left")
-        
-        ctk.CTkButton(
-            bottom_frame, text="˅", width=20, fg_color="transparent", 
-            text_color="#FFFFFF", hover_color="#326F8A", command=self._logout
-        ).pack(side="right")
 
     def _build_main_area(self):
         main_content = ctk.CTkFrame(self, fg_color="transparent")
