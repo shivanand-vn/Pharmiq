@@ -5,6 +5,7 @@ Authenticates users and passes context to the dashboard.
 """
 
 import customtkinter as ctk
+import tkinter as tk
 from tkinter import messagebox
 from db.connection import fetch_one
 from models.user import get_user_roles
@@ -185,26 +186,19 @@ class LoginWindow(ctk.CTkFrame):
             text_color=self.TEXT_PRIMARY, anchor="w",
         ).pack(anchor="w")
 
-        user_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        user_frame.pack(fill="x", pady=(6, 0))
-
         self.username_container = ctk.CTkFrame(
-            user_frame, fg_color=self.INPUT_BG,
+            inner, fg_color=self.INPUT_BG,
             corner_radius=10, border_width=1.5,
             border_color=self.INPUT_BORDER, height=44,
         )
-        self.username_container.pack(fill="x")
+        self.username_container.pack(fill="x", pady=(6, 0))
         self.username_container.pack_propagate(False)
 
-        # Grid layout for vertical centering
-        self.username_container.columnconfigure(1, weight=1)
-        self.username_container.rowconfigure(0, weight=1)
-
         ctk.CTkLabel(
-            self.username_container, text="  👤",
-            font=ctk.CTkFont(size=15), width=40,
-            text_color=self.TEXT_MUTED,
-        ).grid(row=0, column=0, sticky="ns", padx=(6, 0))
+            self.username_container, text="👤",
+            font=ctk.CTkFont(size=14),
+            text_color=self.TEXT_MUTED, fg_color="transparent",
+        ).place(x=14, rely=0.5, anchor="w")
 
         self.username_entry = ctk.CTkEntry(
             self.username_container,
@@ -213,38 +207,28 @@ class LoginWindow(ctk.CTkFrame):
             fg_color="transparent", border_width=0,
             text_color=self.TEXT_PRIMARY, height=40,
         )
-        self.username_entry.grid(row=0, column=1, sticky="nsew", padx=(2, 10))
+        self._place_entry(self.username_entry, left=40, right=10)
 
         # ── Password Field ──
-        pw_label_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        pw_label_frame.pack(fill="x", pady=(16, 0))
-
         ctk.CTkLabel(
-            pw_label_frame, text="Password",
+            inner, text="Password",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self.TEXT_PRIMARY, anchor="w",
-        ).pack(side="left")
-
-        pw_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        pw_frame.pack(fill="x", pady=(6, 0))
+        ).pack(anchor="w", pady=(16, 0))
 
         self.password_container = ctk.CTkFrame(
-            pw_frame, fg_color=self.INPUT_BG,
+            inner, fg_color=self.INPUT_BG,
             corner_radius=10, border_width=1.5,
             border_color=self.INPUT_BORDER, height=44,
         )
-        self.password_container.pack(fill="x")
+        self.password_container.pack(fill="x", pady=(6, 0))
         self.password_container.pack_propagate(False)
 
-        # Grid layout for vertical centering
-        self.password_container.columnconfigure(1, weight=1)
-        self.password_container.rowconfigure(0, weight=1)
-
         ctk.CTkLabel(
-            self.password_container, text="  🔒",
-            font=ctk.CTkFont(size=15), width=40,
-            text_color=self.TEXT_MUTED,
-        ).grid(row=0, column=0, sticky="ns", padx=(6, 0))
+            self.password_container, text="🔒",
+            font=ctk.CTkFont(size=14),
+            text_color=self.TEXT_MUTED, fg_color="transparent",
+        ).place(x=14, rely=0.5, anchor="w")
 
         self.password_entry = ctk.CTkEntry(
             self.password_container,
@@ -254,20 +238,20 @@ class LoginWindow(ctk.CTkFrame):
             fg_color="transparent", border_width=0,
             text_color=self.TEXT_PRIMARY, height=40,
         )
-        self.password_entry.grid(row=0, column=1, sticky="nsew", padx=(2, 0))
+        self._place_entry(self.password_entry, left=40, right=44)
 
         self.toggle_pw_btn = ctk.CTkButton(
             self.password_container,
             text="👁",
-            font=ctk.CTkFont(size=15),
-            width=36, height=32,
+            font=ctk.CTkFont(size=14),
+            width=36, height=30,
             fg_color="transparent",
             hover_color="#E5E7EB",
             text_color=self.TEXT_MUTED,
             corner_radius=8,
             command=self._toggle_password,
         )
-        self.toggle_pw_btn.grid(row=0, column=2, sticky="ns", padx=(0, 6))
+        self.toggle_pw_btn.place(relx=1.0, rely=0.5, anchor="e", x=-6)
 
         # ── Remember Me + Forgot Password Row ──
         options_row = ctk.CTkFrame(inner, fg_color="transparent")
@@ -360,6 +344,11 @@ class LoginWindow(ctk.CTkFrame):
             fg_color=self.INPUT_BG,
         )
 
+    @staticmethod
+    def _place_entry(entry, left=40, right=10):
+        """Place a CTkEntry using tkinter's native place (bypasses CTk restriction)."""
+        tk.Widget.place(entry, x=left, y=2, relwidth=1.0, relheight=1.0, width=-(left + right), height=-4)
+
     # ──────────────────────────────────────────────
     # PASSWORD TOGGLE
     # ──────────────────────────────────────────────
@@ -439,34 +428,32 @@ class LoginWindow(ctk.CTkFrame):
             text_color=self.TEXT_PRIMARY, anchor="w",
         ).pack(anchor="w")
 
-        reset_input_container = ctk.CTkFrame(
+        reset_container = ctk.CTkFrame(
             inner, fg_color=self.INPUT_BG,
             corner_radius=10, border_width=1.5,
             border_color=self.INPUT_BORDER, height=44,
         )
-        reset_input_container.pack(fill="x", pady=(6, 0))
-        reset_input_container.pack_propagate(False)
+        reset_container.pack(fill="x", pady=(6, 0))
+        reset_container.pack_propagate(False)
 
         ctk.CTkLabel(
-            reset_input_container, text="✉",
-            font=ctk.CTkFont(size=15), width=36,
-            text_color=self.TEXT_MUTED,
-        ).pack(side="left", padx=(10, 0))
+            reset_container, text="✉️",
+            font=ctk.CTkFont(size=14),
+            text_color=self.TEXT_MUTED, fg_color="transparent",
+        ).place(x=14, rely=0.5, anchor="w")
 
         reset_entry = ctk.CTkEntry(
-            reset_input_container,
+            reset_container,
             placeholder_text="Enter username or email",
             font=ctk.CTkFont(size=13),
             fg_color="transparent", border_width=0,
             text_color=self.TEXT_PRIMARY, height=40,
         )
-        reset_entry.pack(side="left", fill="both", expand=True, padx=(4, 10))
+        self._place_entry(reset_entry, left=40, right=10)
 
         # Focus animation for modal input
-        reset_entry.bind("<FocusIn>", lambda e: reset_input_container.configure(
-            border_color=self.INPUT_FOCUS_BORDER, fg_color="#FFFFFF"))
-        reset_entry.bind("<FocusOut>", lambda e: reset_input_container.configure(
-            border_color=self.INPUT_BORDER, fg_color=self.INPUT_BG))
+        reset_entry.bind("<FocusIn>", lambda e: self._on_focus_in(reset_container))
+        reset_entry.bind("<FocusOut>", lambda e: self._on_focus_out(reset_container))
 
         # Status label in modal
         modal_status = ctk.CTkLabel(
