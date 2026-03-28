@@ -7,8 +7,13 @@ Authenticates users and passes context to the dashboard.
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
+import json
+import os
 from db.connection import fetch_one
 from models.user import get_user_roles
+
+# Path to store remembered username
+_REMEMBER_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".remember_me.json")
 
 
 class LoginWindow(ctk.CTkFrame):
@@ -38,6 +43,7 @@ class LoginWindow(ctk.CTkFrame):
         self.on_login_success = on_login_success
         self._password_visible = False
         self._build_ui()
+        self._load_remembered()
 
     def _build_ui(self):
         """Build the split-layout login interface."""
@@ -147,14 +153,14 @@ class LoginWindow(ctk.CTkFrame):
         # Shadow layer for depth effect
         shadow = ctk.CTkFrame(
             right, fg_color="#E2E8F0",
-            corner_radius=18, width=420, height=502,
+            corner_radius=18, width=482, height=562,
         )
         shadow.grid(row=1, column=0, padx=(0, 2), pady=(2, 0))
         shadow.grid_propagate(False)
 
         card = ctk.CTkFrame(
             right, fg_color=self.CARD_BG,
-            corner_radius=16, width=420, height=500,
+            corner_radius=16, width=480, height=560,
             border_width=1, border_color="#E5E7EB",
         )
         card.grid(row=1, column=0)
@@ -162,22 +168,22 @@ class LoginWindow(ctk.CTkFrame):
 
         # Inner padding frame
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="both", expand=True, padx=40, pady=36)
+        inner.pack(fill="both", expand=True, padx=48, pady=44)
 
         # Header
         ctk.CTkLabel(
             inner, text="Welcome Back",
-            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=28, weight="bold"),
             text_color=self.TEXT_PRIMARY,
             anchor="w",
         ).pack(anchor="w")
 
         ctk.CTkLabel(
             inner, text="Login to your account",
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(size=14),
             text_color=self.TEXT_SECONDARY,
             anchor="w",
-        ).pack(anchor="w", pady=(4, 28))
+        ).pack(anchor="w", pady=(4, 32))
 
         # ── Username Field ──
         ctk.CTkLabel(
@@ -529,6 +535,7 @@ class LoginWindow(ctk.CTkFrame):
                 roles = get_user_roles(user["user_id"])
                 user["role"] = roles[0] if roles else "Admin"
                 user["roles"] = roles
+                self._save_remembered(username)
                 self.on_login_success(user)
             else:
                 self._show_error("Invalid username or password.")
@@ -541,3 +548,32 @@ class LoginWindow(ctk.CTkFrame):
         """Display an error message with styling."""
         self.error_frame.configure(fg_color=self.ERROR_BG, corner_radius=8)
         self.status_label.configure(text=f"⚠  {message}", text_color=self.ERROR_COLOR)
+
+    # ──────────────────────────────────────────────
+    # REMEMBER ME PERSISTENCE
+    # ──────────────────────────────────────────────
+    def _load_remembered(self):
+        """Load saved username from file and pre-fill the login form."""
+        try:
+            if os.path.exists(_REMEMBER_FILE):
+                with open(_REMEMBER_FILE, "r") as f:
+                    data = json.load(f)
+                saved_user = data.get("username", "")
+                if saved_user:
+                    self.username_entry.insert(0, saved_user)
+                    self.remember_var.set(True)
+                    self.password_entry.focus()
+        except Exception:
+            pass
+
+    def _save_remembered(self, username):
+        """Save or clear the remembered username based on checkbox state."""
+        try:
+            if self.remember_var.get():
+                with open(_REMEMBER_FILE, "w") as f:
+                    json.dump({"username": username}, f)
+            else:
+                if os.path.exists(_REMEMBER_FILE):
+                    os.remove(_REMEMBER_FILE)
+        except Exception:
+            pass
