@@ -1,5 +1,6 @@
 """
-Customer model — fetch and search customers (pharmacies).
+Customer model — fetch, search, create, and update customers (pharmacies).
+Supports structured address fields.
 """
 
 from db.connection import fetch_one, fetch_all, execute_query
@@ -18,7 +19,9 @@ def search_customers(distributor_id, query=""):
     like_q = f"%{query}%"
     return fetch_all(
         """
-        SELECT license_no, shop_name, license_holder_name, mobile_no, gst_no, address, email, status
+        SELECT license_no, shop_name, license_holder_name, mobile_no, gst_no,
+               address_line1, address_line2, city, dist, state, pincode, country,
+               email, status
         FROM customers
         WHERE distributor_id = %s AND status = 'active'
           AND (shop_name LIKE %s OR license_holder_name LIKE %s OR license_no LIKE %s)
@@ -33,7 +36,9 @@ def get_all_customers(distributor_id):
     """Return all active customers for a distributor."""
     return fetch_all(
         """
-        SELECT license_no, shop_name, license_holder_name, mobile_no, gst_no, address, email, status
+        SELECT license_no, shop_name, license_holder_name, mobile_no, gst_no,
+               address_line1, address_line2, city, dist, state, pincode, country,
+               email, status
         FROM customers
         WHERE distributor_id = %s AND status = 'active'
         ORDER BY shop_name
@@ -41,26 +46,62 @@ def get_all_customers(distributor_id):
         (distributor_id,),
     )
 
-def create_customer(distributor_id, license_no, shop_name, name="", mobile="", gst="", email="", address=""):
-    """Insert a new customer into the db."""
+
+def create_customer(distributor_id, license_no, shop_name, name="", mobile="",
+                     gst="", email="", address_line1="", address_line2="",
+                     city="", dist="", state="", pincode="", country="India"):
+    """Insert a new customer into the db with structured address."""
     execute_query(
         """
-        INSERT INTO customers (license_no, distributor_id, shop_name, license_holder_name, mobile_no, gst_no, email, address, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active')
+        INSERT INTO customers
+            (license_no, distributor_id, shop_name, license_holder_name,
+             mobile_no, gst_no, email,
+             address_line1, address_line2, city, dist, state, pincode, country, status)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')
         """,
-        (license_no, distributor_id, shop_name, name, mobile, gst, email, address)
+        (license_no, distributor_id, shop_name, name,
+         mobile, gst, email,
+         address_line1, address_line2, city, dist, state, pincode, country)
     )
 
-def update_customer(original_license_no, license_no, shop_name, name="", mobile="", gst="", email="", address=""):
-    """Update an existing customer."""
-    execute_query(
-        """
-        UPDATE customers 
-        SET license_no=%s, shop_name=%s, license_holder_name=%s, mobile_no=%s, gst_no=%s, email=%s, address=%s
-        WHERE license_no=%s
-        """,
-        (license_no, shop_name, name, mobile, gst, email, address, original_license_no)
-    )
+
+def update_customer(original_license_no, license_no, shop_name, name="", mobile="",
+                     gst="", email="", address_line1="", address_line2="",
+                     city="", dist="", state="", pincode="", country="India"):
+    """Update an existing customer with structured address."""
+    if license_no.strip().upper() == original_license_no.strip().upper():
+        # License unchanged — skip PK update to avoid FK constraint issues
+        execute_query(
+            """
+            UPDATE customers
+            SET shop_name=%s, license_holder_name=%s,
+                mobile_no=%s, gst_no=%s, email=%s,
+                address_line1=%s, address_line2=%s, city=%s, dist=%s,
+                state=%s, pincode=%s, country=%s
+            WHERE license_no=%s
+            """,
+            (shop_name, name,
+             mobile, gst, email,
+             address_line1, address_line2, city, dist, state, pincode, country,
+             original_license_no)
+        )
+    else:
+        # License changed — update everything
+        execute_query(
+            """
+            UPDATE customers
+            SET license_no=%s, shop_name=%s, license_holder_name=%s,
+                mobile_no=%s, gst_no=%s, email=%s,
+                address_line1=%s, address_line2=%s, city=%s, dist=%s,
+                state=%s, pincode=%s, country=%s
+            WHERE license_no=%s
+            """,
+            (license_no, shop_name, name,
+             mobile, gst, email,
+             address_line1, address_line2, city, dist, state, pincode, country,
+             original_license_no)
+        )
+
 
 def toggle_customer_status(license_no, new_status):
     """Activate or deactivate a customer."""

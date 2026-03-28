@@ -21,46 +21,31 @@ VALUES (1, 'SV PHARMACEUTICALS', '9876543210', 'svpharma@email.com',
     'Deshpande Nagar Branch, Hubli', 'svpharma@upi', 'S.V. Kumar', 'active');
 
 -- ----------------------------
--- DISTRIBUTOR 2: AR Pharma
--- ----------------------------
-INSERT IGNORE INTO distributors (distributor_id, name, mobile_no, email, address, gst_no, drug_license_no, logo_path, bank_name, bank_account_no, bank_ifsc, bank_branch, bank_upi, signatory_name, status)
-VALUES (2, 'AR PHARMA DISTRIBUTORS', '9988776655', 'arpharma@email.com',
-    '2nd Floor, MG Road Complex, Dharwad - 580001, Karnataka',
-    '29BBRCA5678G2Z8', 'KA-DW-30C1/31C1-31892',
-    NULL, 'SBI', '38219876543210', 'SBIN0001234',
-    'College Road Branch, Dharwad', 'arpharma@upi', 'A.R. Patil', 'active');
-
--- ----------------------------
 -- USERS (password = 'admin123' for both)
 -- ----------------------------
 INSERT IGNORE INTO users (user_id, distributor_id, username, password, is_first_login, status)
 VALUES
 (1, 1, 'svadmin', 'admin123', 0, 'active'),
-(2, 1, 'svbiller', '+', 0, 'active'),
-(3, 2, 'aradmin', 'admin123', 0, 'active');
+(2, 1, 'svbiller', '+', 0, 'active');
 
 -- ----------------------------
 -- USER_ROLES
 -- ----------------------------
 INSERT IGNORE INTO user_roles (user_id, role_id) VALUES
 (1, 1),
-(2, 2),
-(3, 1);
+(2, 2);
 
 -- ----------------------------
 -- CUSTOMERS
 -- ----------------------------
-INSERT IGNORE INTO customers (license_no, distributor_id, shop_name, license_holder_name, mobile_no, gst_no, email, address, status)
+INSERT IGNORE INTO customers (license_no, distributor_id, shop_name, license_holder_name, mobile_no, gst_no, email, address_line1, address_line2, city, dist, state, pincode, country, status)
 VALUES
-('REG NO KMC 118112', 1, 'ASHWINI SPECIALITY CLINIC', 'DR VIVEKAND KAMAT', '9902656680',
+('KA-BG3-283577', 1, 'ASHWINI SPECIALITY CLINIC', 'DR VIVEKAND KAMAT', '9902656680',
  '29AABCK9999E1ZP', 'ashwini@email.com',
- 'C/O Ashwini Speciality Clinic, Near Ram Mandir, Thane Road, Dharwad, State: 29-Karnataka', 'active'),
-('REG NO KMC 220045', 1, 'SAGAR MEDICALS', 'MR SAGAR PATIL', '9845123456',
+ 'C/O Ashwini Speciality Clinic, Near Ram Mandir', 'Thane Road', 'Dharwad', 'Dharwad', 'Karnataka', '580001', 'India', 'active'),
+('KA-BG3-283578', 1, 'SAGAR MEDICALS', 'MR SAGAR PATIL', '9845123456',
  '29BBCDS7777F1Z3', 'sagar@email.com',
- 'Shop No 5, Main Road, Hubli - 580021, Karnataka', 'active'),
-('REG NO DW 330012', 2, 'PRIYA PHARMACY', 'MS PRIYA SHARMA', '9876012345',
- '29CCDEP3333G1Z1', 'priya@email.com',
- 'Near Bus Stand, College Road, Dharwad - 580001, Karnataka', 'active');
+ 'Shop No 5, Main Road', NULL, 'Hubli', 'Dharwad', 'Karnataka', '580021', 'India', 'active');
 
 -- ----------------------------
 -- SUPPLIERS
@@ -68,8 +53,7 @@ VALUES
 INSERT IGNORE INTO suppliers (supplier_id, distributor_id, name, mobile_no, gst_no)
 VALUES
 (1, 1, 'Sun Pharma Ltd', '9800011111', '27AABCS5678H1Z2'),
-(2, 1, 'Cipla Ltd', '9800022222', '27AABCC9012I1Z4'),
-(3, 2, 'Dr Reddys Labs', '9800033333', '36AABCD3456J1Z6');
+(2, 1, 'Cipla Ltd', '9800022222', '27AABCC9012I1Z4');
 
 -- ----------------------------
 -- MEDICINES
@@ -98,16 +82,7 @@ VALUES
 (5, 5, 1, 1, 'PAN40C044', '2027-01-31', 600, 45.00, 68.50),
 (6, 6, 2, 1, 'AZI500D55', '2026-11-30', 300, 78.00, 115.00),
 (7, 7, 1, 1, 'MET500E66', '2027-08-31', 1500, 8.00, 15.00),
-(8, 8, 2, 1, 'OME20F077', '2026-10-31', 400, 32.00, 52.00);
-
--- ----------------------------
--- BATCHES (for distributor 2 - AR Pharma)
--- ----------------------------
-INSERT IGNORE INTO batches (batch_id, medicine_id, supplier_id, distributor_id, batch_no, expiry_date, quantity, purchase_price, mrp)
-VALUES
-(9,  9, 3, 2, 'RAN150G88', '2027-04-30', 700, 18.00, 30.00),
-(10, 10, 3, 2, 'DOL650H99', '2027-05-31', 900, 20.00, 35.00),
-(11, 1,  3, 2, 'GLI500I10', '2026-08-31', 400, 215.00, 305.00),
+(8, 8, 2, 1, 'OME20F077', '2026-10-31', 400, 32.00, 52.00),
 
 -- New dummy batches for supplier 1, distributor 1
 (12, 9, 1, 1, 'RAN150K12', '2026-05-30', 1000, 18.50, 31.00),

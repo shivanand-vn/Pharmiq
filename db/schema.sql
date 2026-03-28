@@ -71,7 +71,13 @@ CREATE TABLE IF NOT EXISTS customers (
     mobile_no VARCHAR(15),
     gst_no VARCHAR(20),
     email VARCHAR(100),
-    address TEXT,
+    address_line1 VARCHAR(255) NOT NULL DEFAULT '',
+    address_line2 VARCHAR(255) DEFAULT NULL,
+    city VARCHAR(100) NOT NULL DEFAULT '',
+    dist VARCHAR(100) NOT NULL DEFAULT '',
+    state VARCHAR(100) NOT NULL DEFAULT '',
+    pincode VARCHAR(10) NOT NULL DEFAULT '',
+    country VARCHAR(50) NOT NULL DEFAULT 'India',
     status ENUM('active','inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id)
@@ -224,4 +230,16 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     amount DECIMAL(12,2) DEFAULT 0.00,
     FOREIGN KEY (invoice_id) REFERENCES invoices(invoice_id) ON DELETE CASCADE,
     FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
-) ENGINE=InnoDB
+) ENGINE=InnoDB;
+
+-- ----------------------------
+-- AUDIT LOGS
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS deleted_customers_log (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    license_no VARCHAR(50) NOT NULL,
+    shop_name VARCHAR(200),
+    distributor_id INT NOT NULL,
+    deleted_by_user_id INT NOT NULL,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
