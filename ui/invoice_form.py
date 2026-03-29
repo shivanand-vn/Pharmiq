@@ -379,7 +379,7 @@ class InvoiceForm(ctk.CTkFrame):
             exp = prod.get("expiry_date", "")
             if hasattr(exp, "strftime"):
                 exp = exp.strftime("%m/%y")
-            label = f"{prod['product_name']}  |  Batch: {prod['batch_no']}  |  MRP: {prod['mrp']}  |  Qty: {prod['available_qty']}"
+            label = f"{prod['product_name']}  |  Batch: {prod['batch_no']}  |  Sell Price: {prod['selling_price']}  |  Qty: {prod['available_qty']}"
 
             btn = ctk.CTkButton(
                 popup_frame, text=label, height=26,
@@ -415,10 +415,15 @@ class InvoiceForm(ctk.CTkFrame):
         row_data["mrp_lbl"].configure(text=f"{mrp:.2f}")
         row_data["gst_lbl"].configure(text=f"{float(product.get('gst_percent', 12)):.0f}")
 
-        # Set rate = purchase_price (selling rate)
-        rate = float(product.get("purchase_price", mrp))
+        # Set rate = selling_price (default)
+        rate = float(product.get("selling_price", product.get("mrp", 0)))
         row_data["rate_entry"].delete(0, "end")
         row_data["rate_entry"].insert(0, f"{rate:.2f}")
+
+        # Set discount = default discount_percent
+        disc = float(product.get("discount_percent", 0))
+        row_data["disc_entry"].delete(0, "end")
+        row_data["disc_entry"].insert(0, f"{disc:.1f}")
 
         self._recalculate_row(row_data)
 

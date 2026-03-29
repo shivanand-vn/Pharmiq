@@ -6,7 +6,7 @@ Features a 2-column layout with table on left and inline Add/Update Stock form o
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from models.product import get_inventory_list
+from models.product import get_inventory_list, update_inventory_batch
 from db.connection import execute_query, fetch_all
 
 # ── Colour palette ──
@@ -478,21 +478,19 @@ class InventoryView(ctk.CTkFrame):
 
         try:
             if self.editing_batch_id:
-                query = """
-                    UPDATE batches
-                    SET medicine_id = %s, supplier_id = %s, batch_no = %s, expiry_date = %s,
-                        quantity = %s, purchase_price = %s, mrp = %s
-                    WHERE batch_id = %s
-                """
-                execute_query(query, (med_id, sup_id, batch_no, expiry_date, qty, pur_price, mrp, self.editing_batch_id))
+                if not messagebox.askyesno("Confirm Update", "Are you sure you want to update this stock batch?"):
+                    return
+                update_inventory_batch(self.editing_batch_id, med_id, sup_id, batch_no, expiry_date, qty, pur_price, mrp)
                 messagebox.showinfo("Success", "Stock updated successfully!")
             else:
+                if not messagebox.askyesno("Confirm Add", "Are you sure you want to add this new stock batch?"):
+                    return
                 query = """
                     INSERT INTO batches
-                    (medicine_id, supplier_id, distributor_id, batch_no, expiry_date, quantity, purchase_price, mrp)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (medicine_id, supplier_id, distributor_id, batch_no, expiry_date, quantity, purchase_price, mrp, selling_price)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                execute_query(query, (med_id, sup_id, self.user["distributor_id"], batch_no, expiry_date, qty, pur_price, mrp))
+                execute_query(query, (med_id, sup_id, self.user["distributor_id"], batch_no, expiry_date, qty, pur_price, mrp, mrp))
                 messagebox.showinfo("Success", "Stock added successfully!")
 
             self._clear_form()

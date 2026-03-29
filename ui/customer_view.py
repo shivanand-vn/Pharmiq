@@ -146,11 +146,11 @@ class CustomerView(ctk.CTkFrame):
         self._section_label(form_scroll, "Customer Details")
 
         self.f_license, self._v_license = self._add_field(
-            form_scroll, "License No", "e.g. KA-BG2-283573", True)
+            form_scroll, "License No", "e.g. KA-AB1-123456", True)
         self.f_shop_name, self._v_shop = self._add_field(
-            form_scroll, "Shop Name", "e.g. Apollo Pharmacy", True)
+            form_scroll, "Shop Name", "e.g. Name of the Pharmacy", True)
         self.f_owner_name, self._v_owner = self._add_field(
-            form_scroll, "Owner Name", "e.g. John Doe", True)
+            form_scroll, "Owner Name", "e.g. Name of the Owner", True)
         self.f_mobile, self._v_mobile = self._add_field(
             form_scroll, "Contact Number", "e.g. 9876543210", True)
         self.f_email, self._v_email = self._add_field(
