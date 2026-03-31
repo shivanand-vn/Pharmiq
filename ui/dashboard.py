@@ -74,17 +74,23 @@ class Dashboard(ctk.CTkFrame):
 
         icons = {
             "layout": "⊞", "store": "🏪", "box": "📦", "file-text": "📄",
-            "package": "🗃️", "rotate-ccw": "↩️", "bar-chart": "📊", "users": "👥", "settings": "⚙️"
+            "package": "🗃", "rotate-ccw": "↩", "bar-chart": "📊", "users": "👥", "settings": "⚙"
         }
+
+        # Narrow symbols need an extra space to visually align with double-width emojis
+        narrow_icons = {"layout", "rotate-ccw", "settings"}
 
         for title, icon_key, is_active, handler, allowed in nav_items:
             bg_color = "#326F8A" if is_active else "transparent"
             hover_color = "#326F8A"
             text_color = "#FFFFFF" if is_active else "#A8C5DA"
             
+            icon_str = icons.get(icon_key, '')
+            spacing = "   " if icon_key in narrow_icons else "  "
+            
             btn = ctk.CTkButton(
                 self.sidebar,
-                text=f"  {icons.get(icon_key, '')}  {title}",
+                text=f"  {icon_str}{spacing}{title}",
                 font=ctk.CTkFont(size=14, weight="bold" if is_active else "normal"),
                 fg_color=bg_color,
                 hover_color=hover_color,
