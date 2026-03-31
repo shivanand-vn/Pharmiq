@@ -239,22 +239,43 @@ class InventoryView(ctk.CTkFrame):
         # Batch: Alphanumeric, 3-20
         if not re.match(r"^[a-zA-Z0-9]{3,20}$", batch):
             errors.append("Batch: 3-20 Alphanumeric")
+            self.f_batch.configure(border_color=DANGER)
+        else:
+            self.f_batch.configure(border_color=SUCCESS)
         
         # Qty: Positive Int
         try:
-            if int(qty) <= 0: errors.append("Qty must be > 0")
-        except: errors.append("Qty must be number")
+            if int(qty) <= 0: 
+                errors.append("Qty must be > 0")
+                self.f_quantity.configure(border_color=DANGER)
+            else:
+                self.f_quantity.configure(border_color=SUCCESS)
+        except ValueError: 
+            errors.append("Qty must be number")
+            self.f_quantity.configure(border_color=DANGER)
 
         # Purchase: Positive Float
         try:
-            if float(purchase) <= 0: errors.append("Price must be > 0")
-        except: errors.append("Price must be number")
+            if float(purchase) <= 0: 
+                errors.append("Price must be > 0")
+                self.f_purchase.configure(border_color=DANGER)
+            else:
+                self.f_purchase.configure(border_color=SUCCESS)
+        except ValueError: 
+            errors.append("Price must be number")
+            self.f_purchase.configure(border_color=DANGER)
 
         # Expiry: Future YYYY-MM-DD
         try:
             exp_d = datetime.strptime(exp, "%Y-%m-%d").date()
-            if exp_d <= date.today(): errors.append("Expiry must be future")
-        except: errors.append("Expiry: YYYY-MM-DD")
+            if exp_d <= date.today(): 
+                errors.append("Expiry must be future")
+                self.f_expiry.configure(border_color=DANGER)
+            else:
+                self.f_expiry.configure(border_color=SUCCESS)
+        except ValueError: 
+            errors.append("Expiry: YYYY-MM-DD")
+            self.f_expiry.configure(border_color=DANGER)
 
         if errors:
             self.v_lbl.configure(text=f"⚠  {errors[0]}")

@@ -142,8 +142,31 @@ class MedicineView(ctk.CTkFrame):
         self.f_selling = add_field(form_scroll, "Selling Price (₹)", "Distributor Selling Price")
         self.f_discount = add_field(form_scroll, "Default Discount (%)", "e.g. 10.0", required=False)
 
+        self.f_mrp.bind("<KeyRelease>", self._validate_prices)
+        self.f_selling.bind("<KeyRelease>", self._validate_prices)
+
+        ctk.CTkFrame(form_scroll, fg_color=BORDER_CLR, height=2).pack(fill="x", padx=20, pady=15)
+        ctk.CTkLabel(form_scroll, text="Inventory / Stock Information", font=ctk.CTkFont(size=13, weight="bold"), text_color=TEXT_DARK).pack(anchor="w", padx=20, pady=(0, 5))
+
+        def add_dummy_field(parent, label_text, tooltip):
+            row = ctk.CTkFrame(parent, fg_color="transparent")
+            row.pack(padx=20, pady=(4, 8), fill="x")
+            ctk.CTkLabel(row, text=label_text, font=ctk.CTkFont(size=12, weight="bold"), text_color=TEXT_MUTED, anchor="w", height=15).pack(anchor="w")
+            entry = ctk.CTkEntry(
+                row, placeholder_text="Managed in Inventory", height=38, font=ctk.CTkFont(size=12, slant="italic"),
+                fg_color="#F3F4F6", border_color=BORDER_CLR, border_width=1, text_color=TEXT_MUTED, corner_radius=6, state="disabled"
+            )
+            entry.pack(fill="x")
+            ctk.CTkLabel(row, text=tooltip, font=ctk.CTkFont(size=10, slant="italic"), text_color="#9CA3AF", height=12).pack(anchor="w", pady=(2, 0))
+
+        add_dummy_field(form_scroll, "Batch Number", "This field cannot be edited. Use Inventory module for stock updates.")
+        add_dummy_field(form_scroll, "Quantity", "This field cannot be edited. Use Inventory module for stock updates.")
+        add_dummy_field(form_scroll, "Expiry Date", "This field cannot be edited. Use Inventory module for stock updates.")
+        add_dummy_field(form_scroll, "Manufacturer", "This field cannot be edited. Use suppliers tracking.")
+
         # Buttons
         btn_frame = ctk.CTkFrame(form_scroll, fg_color="transparent")
+
         btn_frame.pack(fill="x", padx=20, pady=(20, 20))
 
         self.save_btn = ctk.CTkButton(
@@ -163,6 +186,36 @@ class MedicineView(ctk.CTkFrame):
         self.clear_btn.pack(side="left", fill="x", expand=True, padx=(5, 0))
 
         ctk.CTkLabel(form_scroll, text="Stock must be added via Inventory Module", font=ctk.CTkFont(size=10, slant="italic"), text_color=TEXT_MUTED).pack(pady=10)
+
+    def _validate_prices(self, event=None):
+        mrp_text = self.f_mrp.get().strip()
+        sell_text = self.f_selling.get().strip()
+        
+        try:
+            mrp_val = float(mrp_text) if mrp_text else -1
+        except ValueError:
+            mrp_val = -1
+            
+        try:
+            sell_val = float(sell_text) if sell_text else -1
+        except ValueError:
+            sell_val = -1
+
+        # Check sell price
+        if sell_val > 0:
+            self.f_selling.configure(border_color=SUCCESS)
+        elif sell_text:
+            self.f_selling.configure(border_color=DANGER)
+        else:
+            self.f_selling.configure(border_color=BORDER_CLR)
+            
+        # Check mrp
+        if mrp_val >= 0 and sell_val > 0 and mrp_val >= sell_val:
+            self.f_mrp.configure(border_color=SUCCESS)
+        elif mrp_text:
+            self.f_mrp.configure(border_color=DANGER)
+        else:
+            self.f_mrp.configure(border_color=BORDER_CLR)
 
     def _load_data(self):
         try:
@@ -212,14 +265,25 @@ class MedicineView(ctk.CTkFrame):
 
         self.f_name.insert(0, row["name"])
         self.f_unit.insert(0, row.get("unit") or "")
+        
+        self.f_name.configure(state="disabled", fg_color="#F3F4F6", text_color=TEXT_MUTED)
+        self.f_unit.configure(state="disabled", fg_color="#F3F4F6", text_color=TEXT_MUTED)
+
         self.f_mrp.insert(0, str(row.get("mrp", "")))
         self.f_selling.insert(0, str(row.get("selling_price", "")))
         self.f_discount.insert(0, str(row.get("discount_percent", "")))
+        self._validate_prices()
 
     def _clear_form(self):
         self.editing_medicine_id = None
         self.form_title.configure(text="Add New Medicine")
         self.save_btn.configure(text="Save Medicine", fg_color=SUCCESS)
+        
+        self.f_name.configure(state="normal", fg_color=ENTRY_BG, text_color=TEXT_DARK)
+        self.f_unit.configure(state="normal", fg_color=ENTRY_BG, text_color=TEXT_DARK)
+        self.f_mrp.configure(border_color=BORDER_CLR)
+        self.f_selling.configure(border_color=BORDER_CLR)
+        
         self.f_name.delete(0, "end")
         self.f_unit.delete(0, "end")
         self.f_mrp.delete(0, "end")
@@ -248,14 +312,17 @@ class MedicineView(ctk.CTkFrame):
             return
 
         if self.editing_medicine_id:
+            if not messagebox.askyesno("Confirm Update", "Are you sure you want to update this medicine? Only pricing changes will be saved."):
+                return
             try:
                 update_medicine_pricing(self.editing_medicine_id, sell_val, mrp_val, disc_val)
-                # Also update name/unit if changed
-                execute_query("UPDATE medicines SET name = %s, unit = %s WHERE medicine_id = %s", (name, unit, self.editing_medicine_id))
+                # We skip updating name and unit since they are disabled in edit mode
                 messagebox.showinfo("Success", "Medicine definition updated.")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed: {e}")
         else:
+            if not messagebox.askyesno("Confirm Adding", "Are you sure you want to add this new medicine?"):
+                return
             try:
                 execute_query(
                     "INSERT INTO medicines (name, unit, mrp, selling_price, discount_percent) VALUES (%s, %s, %s, %s, %s)",

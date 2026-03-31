@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 import json
 import os
+import hashlib
 from db.connection import fetch_one
 from models.user import get_user_roles
 
@@ -522,6 +523,8 @@ class LoginWindow(ctk.CTkFrame):
         self.status_label.configure(text="")
         self.update()
 
+        hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
+
         try:
             user = fetch_one(
                 """
@@ -529,7 +532,7 @@ class LoginWindow(ctk.CTkFrame):
                 FROM users u
                 WHERE u.username = %s AND u.password = %s AND u.status = 'active'
                 """,
-                (username, password),
+                (username, hashed_password),
             )
             if user:
                 roles = get_user_roles(user["user_id"])

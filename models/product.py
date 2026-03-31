@@ -126,6 +126,20 @@ def check_batch_exists(distributor_id, medicine_id, batch_number):
 
 def add_new_stock(distributor_id, medicine_id, supplier_id, batch_number, expiry_date, quantity, purchase_price):
     """Insert a new stock entry."""
+    import datetime
+    
+    # Validations
+    if not batch_number or not str(batch_number).isalnum() or len(str(batch_number)) < 3 or len(str(batch_number)) > 20:
+        raise ValueError("Batch Number must be strictly alphanumeric and between 3-20 characters.")
+    if int(quantity) <= 0:
+        raise ValueError("Quantity must be a positive integer greater than 0.")
+    if float(purchase_price) < 0:
+        raise ValueError("Purchase price cannot be negative.")
+        
+    exp_dt = datetime.datetime.strptime(str(expiry_date), "%Y-%m-%d").date() if isinstance(expiry_date, str) else expiry_date
+    if exp_dt <= datetime.date.today():
+        raise ValueError("Expiry Date must be a future date.")
+
     return execute_query(
         """
         INSERT INTO inventory_batches 
@@ -151,9 +165,16 @@ def update_existing_stock_qty(batch_id, additional_qty, purchase_price=None):
 
 def update_medicine_pricing(medicine_id, selling_price, mrp, discount_percent):
     """Update pricing on the medicine level."""
+    sp = float(selling_price)
+    mp = float(mrp)
+    if sp <= 0:
+        raise ValueError("Selling Price must be greater than 0.")
+    if mp < sp:
+        raise ValueError("MRP cannot be less than the Selling Price.")
+
     return execute_query(
         "UPDATE medicines SET selling_price = %s, mrp = %s, discount_percent = %s WHERE medicine_id = %s",
-        (selling_price, mrp, discount_percent, medicine_id)
+        (sp, mp, discount_percent, medicine_id)
     )
 
 
