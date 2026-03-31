@@ -65,6 +65,7 @@ class Dashboard(ctk.CTkFrame):
             ("Medicines", "box", False, self._go_medicines, ["Admin", "Biller", "Accountant"]),
             ("Billing/Invoices", "file-text", False, self._go_invoices, ["Admin", "Biller", "Accountant"]),
             ("Inventory", "package", False, self._go_inventory, ["Admin", "Accountant", "Biller"]),
+            ("Returns", "rotate-ccw", False, self._go_returns, ["Admin", "Biller"]),
             ("Reports & Analytics", "bar-chart", False, self._show_reports, ["Admin", "Accountant"]),
             ("Users & Roles", "users", False, self._show_users, ["Admin"]),
             ("Settings", "settings", False, self._show_settings, ["Admin"])
@@ -73,7 +74,7 @@ class Dashboard(ctk.CTkFrame):
 
         icons = {
             "layout": "⊞", "store": "🏪", "box": "📦", "file-text": "📄",
-            "package": "🗃️", "bar-chart": "📊", "users": "👥", "settings": "⚙️"
+            "package": "🗃️", "rotate-ccw": "↩️", "bar-chart": "📊", "users": "👥", "settings": "⚙️"
         }
 
         for title, icon_key, is_active, handler, allowed in nav_items:
@@ -486,6 +487,13 @@ class Dashboard(ctk.CTkFrame):
         for widget in self.master.winfo_children():
             widget.destroy()
         view = InventoryView(self.master, self.user, self.app)
+        view.pack(fill="both", expand=True)
+
+    def _go_returns(self):
+        from ui.returns_view import ReturnsView
+        for widget in self.master.winfo_children():
+            widget.destroy()
+        view = ReturnsView(self.master, self.user, self.app)
         view.pack(fill="both", expand=True)
 
     def _new_invoice(self):
