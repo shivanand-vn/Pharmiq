@@ -11,12 +11,15 @@ from utils.num_to_words import number_to_words
 
 def calculate_item_amount(qty, rate, discount_percent):
     """Calculate the amount for a single line item (before GST)."""
-    q = Decimal(str(qty))
-    r = Decimal(str(rate))
-    d = Decimal(str(discount_percent))
-    base = q * r
-    discount = (base * d / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    return float((base - discount).quantize(Decimal("0.01"), ROUND_HALF_UP))
+    try:
+        q = Decimal(str(qty))
+        r = Decimal(str(rate))
+        d = Decimal(str(discount_percent))
+        base = q * r
+        discount = (base * d / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        return float((base - discount).quantize(Decimal("0.01"), ROUND_HALF_UP))
+    except Exception:
+        return 0.0
 
 
 def calculate_invoice_totals(items):
@@ -26,37 +29,47 @@ def calculate_invoice_totals(items):
 
     Returns dict with: subtotal, discount_amount, sgst, cgst, total_gst, grand_total
     """
-    subtotal = Decimal("0")
-    total_discount = Decimal("0")
-    total_gst = Decimal("0")
+    try:
+        subtotal = Decimal("0")
+        total_discount = Decimal("0")
+        total_gst = Decimal("0")
 
-    for item in items:
-        q = Decimal(str(item["qty"]))
-        r = Decimal(str(item["rate"]))
-        d = Decimal(str(item.get("discount_percent", 0)))
-        g = Decimal(str(item.get("gst_percent", 0)))
+        for item in items:
+            q = Decimal(str(item["qty"]))
+            r = Decimal(str(item["rate"]))
+            d = Decimal(str(item.get("discount_percent", 0)))
+            g = Decimal(str(item.get("gst_percent", 0)))
 
-        base = q * r
-        discount = (base * d / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
-        after_disc = base - discount
-        gst_val = (after_disc * g / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            base = q * r
+            discount = (base * d / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            after_disc = base - discount
+            gst_val = (after_disc * g / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
 
-        subtotal += after_disc
-        total_discount += discount
-        total_gst += gst_val
+            subtotal += after_disc
+            total_discount += discount
+            total_gst += gst_val
 
-    sgst = (total_gst / Decimal("2")).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    cgst = (total_gst / Decimal("2")).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    grand_total = (subtotal + total_gst).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        sgst = (total_gst / Decimal("2")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        cgst = (total_gst / Decimal("2")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        grand_total = (subtotal + total_gst).quantize(Decimal("0.01"), ROUND_HALF_UP)
 
-    return {
-        "subtotal": float(subtotal.quantize(Decimal("0.01"), ROUND_HALF_UP)),
-        "discount_amount": float(total_discount.quantize(Decimal("0.01"), ROUND_HALF_UP)),
-        "sgst": float(sgst),
-        "cgst": float(cgst),
-        "total_gst": float(total_gst.quantize(Decimal("0.01"), ROUND_HALF_UP)),
-        "grand_total": float(grand_total),
-    }
+        return {
+            "subtotal": float(subtotal.quantize(Decimal("0.01"), ROUND_HALF_UP)),
+            "discount_amount": float(total_discount.quantize(Decimal("0.01"), ROUND_HALF_UP)),
+            "sgst": float(sgst),
+            "cgst": float(cgst),
+            "total_gst": float(total_gst.quantize(Decimal("0.01"), ROUND_HALF_UP)),
+            "grand_total": float(grand_total),
+        }
+    except Exception:
+        return {
+            "subtotal": 0.0,
+            "discount_amount": 0.0,
+            "sgst": 0.0,
+            "cgst": 0.0,
+            "total_gst": 0.0,
+            "grand_total": 0.0,
+        }
 
 
 def build_gst_summary(items):
