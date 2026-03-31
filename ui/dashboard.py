@@ -295,14 +295,6 @@ class Dashboard(ctk.CTkFrame):
         actions_card = ctk.CTkFrame(right_panel, fg_color="transparent")
         actions_card.pack(fill="x", pady=(0, 20))
         
-        btn_create = ctk.CTkButton(
-            actions_card, text="Create Invoice", 
-            font=ctk.CTkFont(size=15, weight="bold"), fg_color="#FFFFFF", text_color="#111827",
-            hover_color="#F3F4F6", corner_radius=12, height=50, border_width=1, border_color="#E5E7EB",
-            command=self._new_invoice
-        )
-        btn_create.pack(fill="x", pady=(0, 15))
-        
         um_card = ctk.CTkFrame(right_panel, fg_color="#FFFFFF", corner_radius=16)
         um_card.pack(fill="x")
         ctk.CTkLabel(um_card, text="Role Information", font=ctk.CTkFont(size=16, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=20, pady=(20, 5))
@@ -486,7 +478,7 @@ class Dashboard(ctk.CTkFrame):
         self._go_medicines()
 
     def _go_invoices(self):
-        self._show_history()
+        self._new_invoice()
 
     def _go_inventory(self):
         from ui.inventory_view import InventoryView
@@ -504,9 +496,9 @@ class Dashboard(ctk.CTkFrame):
 
     def _new_invoice(self):
         from ui.invoice_form import InvoiceForm
-        for widget in self.winfo_children():
+        for widget in self.master.winfo_children():
             widget.destroy()
-        form = InvoiceForm(self, self.user, self.distributor, self.app)
+        form = InvoiceForm(self.master, self.user, self.distributor, self.app)
         form.pack(fill="both", expand=True)
 
     def _add_stock(self):
