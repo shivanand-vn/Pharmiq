@@ -102,7 +102,7 @@ def create_invoice(invoice_data, items_data):
             )
             # Reduce batch stock
             cursor.execute(
-                "UPDATE batches SET quantity = quantity - %s WHERE batch_id = %s",
+                "UPDATE inventory_batches SET quantity = quantity - %s WHERE batch_id = %s",
                 (item["qty"], item["batch_id"]),
             )
 

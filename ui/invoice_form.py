@@ -379,7 +379,7 @@ class InvoiceForm(ctk.CTkFrame):
             exp = prod.get("expiry_date", "")
             if hasattr(exp, "strftime"):
                 exp = exp.strftime("%m/%y")
-            label = f"{prod['product_name']}  |  Batch: {prod['batch_no']}  |  Sell Price: {prod['selling_price']}  |  Qty: {prod['available_qty']}"
+            label = f"{prod['product_name']}  |  Batch: {prod['batch_number']}  |  Sell Price: {prod['selling_price']}  |  Qty: {prod['available_qty']}"
 
             btn = ctk.CTkButton(
                 popup_frame, text=label, height=26,
@@ -404,7 +404,7 @@ class InvoiceForm(ctk.CTkFrame):
         # Fill fields
         row_data["product_entry"].delete(0, "end")
         row_data["product_entry"].insert(0, product["product_name"])
-        row_data["batch_lbl"].configure(text=product["batch_no"])
+        row_data["batch_lbl"].configure(text=product["batch_number"])
 
         exp = product.get("expiry_date", "")
         if hasattr(exp, "strftime"):
@@ -560,7 +560,7 @@ class InvoiceForm(ctk.CTkFrame):
                 items.append({
                     "batch_id": row["batch_id"],
                     "product_name": prod.get("product_name", ""),
-                    "batch_no": prod.get("batch_no", ""),
+                    "batch_no": prod.get("batch_number", ""),
                     "expiry_date": str(exp),
                     "qty": qty,
                     "mrp": float(prod.get("mrp", 0)),
@@ -581,7 +581,7 @@ class InvoiceForm(ctk.CTkFrame):
             if batch and item["qty"] > batch["available_qty"]:
                 messagebox.showwarning(
                     "Insufficient Stock",
-                    f"Only {batch['available_qty']} available for {item['product_name']} (Batch: {item['batch_no']})"
+                    f"Only {batch['available_qty']} available for {item['product_name']} (Batch: {item['batch_number']})"
                 )
                 return
 

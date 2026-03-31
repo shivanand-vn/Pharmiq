@@ -496,11 +496,11 @@ class Dashboard(ctk.CTkFrame):
         form.pack(fill="both", expand=True)
 
     def _add_stock(self):
-        from ui.add_stock_form import AddStockForm
-        for widget in self.winfo_children():
+        from ui.inventory_view import InventoryView
+        for widget in self.master.winfo_children():
             widget.destroy()
-        form = AddStockForm(self.master, self.user, self.app)
-        form.pack(fill="both", expand=True)
+        view = InventoryView(self.master, self.user, self.app)
+        view.pack(fill="both", expand=True)
 
     def _add_party(self):
         from ui.add_party_form import AddPartyForm
