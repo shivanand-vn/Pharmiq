@@ -519,7 +519,11 @@ class Dashboard(ctk.CTkFrame):
         messagebox.showinfo("Invoice History", "Invoice history view coming soon!")
 
     def _show_reports(self):
-        messagebox.showinfo("Reports", "Reports module coming soon!")
+        from ui.reports_view import ReportsView
+        for widget in self.master.winfo_children():
+            widget.destroy()
+        view = ReportsView(self.master, self.user, self.app)
+        view.pack(fill="both", expand=True)
         
     def _show_users(self):
         from ui.user_view import UserView

@@ -38,7 +38,7 @@ INDIAN_STATES = [
 ]
 
 # ── Validation Patterns ──
-RE_LICENSE = re.compile(r'^[A-Z]{2}-[A-Z0-9]{2,4}-\d{5,7}( ?/ ?\d{5,7})?$')
+RE_LICENSE = re.compile(r'^[A-Z]{2}-[A-Z0-9]{2,4}-\d{6}( ?/ ?\d{6})?$')
 RE_CONTACT = re.compile(r'^[6-9]\d{9}$')
 RE_NAME = re.compile(r'^[A-Za-z .&]{3,50}$')
 RE_PINCODE = re.compile(r'^[1-9]\d{5}$')
@@ -325,6 +325,8 @@ class CustomerView(ctk.CTkFrame):
         self.f_pincode.bind("<KeyRelease>", lambda e: self._validate_pincode())
         self.f_pincode.bind("<FocusOut>", lambda e: self._validate_pincode())
         self.f_state.bind("<<ComboboxSelected>>", lambda e: self._validate_state())
+        self.f_state.bind("<KeyRelease>", lambda e: self._validate_state())
+        self.f_state.bind("<FocusOut>", lambda e: self._validate_state())
 
         # Auto-uppercase license number
         self.f_license.bind("<KeyRelease>", lambda e: self._auto_upper_license(), add="+")
@@ -341,17 +343,17 @@ class CustomerView(ctk.CTkFrame):
     def _set_valid(self, entry, vlabel, msg=""):
         entry.configure(border_color=VALID_BORDER)
         vlabel.configure(text=f"✓ {msg}" if msg else "", text_color=VALID_BORDER)
-        self._update_save_btn()
+        self.after(10, self._update_save_btn)
 
     def _set_invalid(self, entry, vlabel, msg):
         entry.configure(border_color=INVALID_BORDER)
         vlabel.configure(text=f"✗ {msg}", text_color=INVALID_BORDER)
-        self._update_save_btn()
+        self.after(10, self._update_save_btn)
 
     def _set_neutral(self, entry, vlabel):
         entry.configure(border_color=BORDER_CLR)
         vlabel.configure(text="")
-        self._update_save_btn()
+        self.after(10, self._update_save_btn)
 
     def _validate_license(self):
         val = self.f_license.get().strip()
@@ -430,7 +432,7 @@ class CustomerView(ctk.CTkFrame):
             self._validation_state["addr1"] = False
             return False
         if len(val) >= 3:
-            self._set_valid(self.f_addr1, self._v_addr1)
+            self._set_valid(self.f_addr1, self._v_addr1, "Valid")
             self._validation_state["addr1"] = True
             return True
         self._set_invalid(self.f_addr1, self._v_addr1, "At least 3 characters")
@@ -444,7 +446,7 @@ class CustomerView(ctk.CTkFrame):
             self._validation_state["city"] = False
             return False
         if len(val) >= 2:
-            self._set_valid(self.f_city, self._v_city)
+            self._set_valid(self.f_city, self._v_city, "Valid")
             self._validation_state["city"] = True
             return True
         self._set_invalid(self.f_city, self._v_city, "Required")
@@ -458,7 +460,7 @@ class CustomerView(ctk.CTkFrame):
             self._validation_state["dist"] = False
             return False
         if len(val) >= 2:
-            self._set_valid(self.f_dist, self._v_dist)
+            self._set_valid(self.f_dist, self._v_dist, "Valid")
             self._validation_state["dist"] = True
             return True
         self._set_invalid(self.f_dist, self._v_dist, "Required")
@@ -467,12 +469,15 @@ class CustomerView(ctk.CTkFrame):
 
     def _validate_state(self):
         val = self.f_state.get().strip()
+        if not val:
+            val = "Karnataka"
+            self.f_state.set(val)
         if val and val in INDIAN_STATES:
-            self._set_valid(self.f_state, self._v_state)
             self._validation_state["state"] = True
+            self._set_valid(self.f_state, self._v_state, "Valid")
             return True
-        self._set_neutral(self.f_state, self._v_state)
         self._validation_state["state"] = False
+        self._set_neutral(self.f_state, self._v_state)
         return False
 
     def _validate_pincode(self):
@@ -491,8 +496,35 @@ class CustomerView(ctk.CTkFrame):
 
     def _update_save_btn(self):
         """Enable save only when all required fields are valid."""
-        required = ["license", "name", "owner", "mobile", "email", "addr1", "city", "dist", "state", "pincode"]
-        all_valid = all(self._validation_state.get(k, False) for k in required)
+        missing = []
+        if not RE_LICENSE.match(self.f_license.get().strip()): missing.append("license")
+        if not RE_NAME.match(self.f_shop_name.get().strip()): missing.append("name")
+        if not RE_NAME.match(self.f_owner_name.get().strip()): missing.append("owner")
+        if not RE_CONTACT.match(self.f_mobile.get().strip()): missing.append("mobile")
+        
+        email_val = self.f_email.get().strip()
+        if email_val and not RE_EMAIL.match(email_val): missing.append("email")
+            
+        if len(self.f_addr1.get().strip()) < 3: missing.append("addr1")
+        if len(self.f_city.get().strip()) < 2: missing.append("city")
+        if len(self.f_dist.get().strip()) < 2: missing.append("dist")
+        
+        state_val = self.f_state.get().strip()
+        if not state_val or state_val not in INDIAN_STATES: missing.append("state")
+            
+        if not RE_PINCODE.match(self.f_pincode.get().strip()): missing.append("pincode")
+
+        # Update dictionary synchronicity so everything aligns perfectly
+        for k in ["license", "name", "owner", "mobile", "email", "addr1", "city", "dist", "state", "pincode"]:
+            self._validation_state[k] = (k not in missing)
+        
+        # Debugging step: Display missing fields in the form status
+        if missing:
+            self.form_status.configure(text=f"Missing: {', '.join(missing)}", text_color="#EF4444")
+        else:
+            self.form_status.configure(text="")
+            
+        all_valid = len(missing) == 0
         if all_valid:
             self.save_btn.configure(state="normal", fg_color=SUCCESS)
         else:
@@ -560,12 +592,6 @@ class CustomerView(ctk.CTkFrame):
                 command=lambda r=row: self._start_edit(r)
             ).pack(side="left", padx=(0, 5))
 
-            ctk.CTkButton(
-                action_frame, text="Del", width=60, height=28,
-                font=ctk.CTkFont(size=11, weight="bold"), corner_radius=6,
-                fg_color="#FEE2E2", hover_color="#FECACA", text_color="#991B1B",
-                command=lambda l=row["license_no"]: self._delete_customer(l)
-            ).pack(side="left")
 
     # ──────────────────────────────────────────────
     # EDIT / CLEAR / SAVE
@@ -636,6 +662,12 @@ class CustomerView(ctk.CTkFrame):
 
         # Normalize license — trim extra spaces
         license_no = re.sub(r'\s+', ' ', license_no).strip()
+
+        # Added confirmation dialog before saving
+        action_text = "update" if self.editing_license else "add"
+        msg = f"Are you sure you want to {action_text} customer '{shop_name}'?\nPlease verify the details before saving."
+        if not messagebox.askyesno("Confirm Action", msg):
+            return
 
         try:
             if self.editing_license:
