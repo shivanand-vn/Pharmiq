@@ -60,6 +60,13 @@ class ReportsView(ctk.CTkFrame):
         header_frame = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=12)
         header_frame.grid(row=0, column=0, sticky="ew", padx=25, pady=(25, 10))
         
+        ctk.CTkButton(
+            header_frame, text="← Back to Dashboard", width=140, height=36,
+            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=8,
+            fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
+            command=self._go_back,
+        ).pack(side="left", padx=(20, 0), pady=12)
+        
         title_lbl = ctk.CTkLabel(
             header_frame, text="📊 Reports & Analytics", 
             font=ctk.CTkFont(size=22, weight="bold"), text_color="#1F2937"
@@ -94,12 +101,12 @@ class ReportsView(ctk.CTkFrame):
         top_row.pack(fill="x", padx=20, pady=(15, 10))
         
         # Report Type Dropdown
-        ctk.CTkLabel(top_row, text="Report Type:", font=ctk.CTkFont(weight="bold")).pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(top_row, text="Report Type:", font=ctk.CTkFont(weight="bold"), text_color="#1F2937").pack(side="left", padx=(0, 10))
         self.report_type_menu = ctk.CTkOptionMenu(
             top_row, values=["Sales Report", "Detailed Invoice Report", "Inventory / Stock Report", "Expiry Report", "Return Report"],
             variable=self.current_report_type,
             command=self._on_report_type_change,
-            width=220, fg_color="#F3F4F6", text_color="#1F2937",
+            width=220, fg_color="#F9FAFB", text_color="#1F2937",
             button_color="#E5E7EB", button_hover_color="#D1D5DB"
         )
         self.report_type_menu.pack(side="left")
@@ -107,12 +114,12 @@ class ReportsView(ctk.CTkFrame):
         # Date Filters
         self.date_frame = ctk.CTkFrame(top_row, fg_color="transparent")
         self.date_frame.pack(side="left", padx=15)
-        ctk.CTkLabel(self.date_frame, text="From (YYYY-MM-DD):").pack(side="left", padx=5)
-        self.from_date_entry = ctk.CTkEntry(self.date_frame, width=110, placeholder_text="YYYY-MM-DD")
+        ctk.CTkLabel(self.date_frame, text="From (YYYY-MM-DD):", text_color="#374151").pack(side="left", padx=5)
+        self.from_date_entry = ctk.CTkEntry(self.date_frame, width=120, placeholder_text="YYYY-MM-DD", fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
         self.from_date_entry.pack(side="left")
         
-        ctk.CTkLabel(self.date_frame, text="To:").pack(side="left", padx=5)
-        self.to_date_entry = ctk.CTkEntry(self.date_frame, width=110, placeholder_text="YYYY-MM-DD")
+        ctk.CTkLabel(self.date_frame, text="To:", text_color="#374151").pack(side="left", padx=5)
+        self.to_date_entry = ctk.CTkEntry(self.date_frame, width=120, placeholder_text="YYYY-MM-DD", fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
         self.to_date_entry.pack(side="left")
         
         # Bottom Row for specific filters
@@ -122,24 +129,24 @@ class ReportsView(ctk.CTkFrame):
         # Customer Filter
         self.customer_frame = ctk.CTkFrame(self.bot_row, fg_color="transparent")
         self.customer_frame.pack(side="left", padx=(0, 15))
-        ctk.CTkLabel(self.customer_frame, text="Customer:").pack(side="left", padx=5)
-        self.customer_entry = ctk.CTkEntry(self.customer_frame, width=150, placeholder_text="Search Name...")
+        ctk.CTkLabel(self.customer_frame, text="Customer:", text_color="#374151").pack(side="left", padx=5)
+        self.customer_entry = ctk.CTkEntry(self.customer_frame, width=150, placeholder_text="Search Name...", fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
         self.customer_entry.pack(side="left")
         
         # Medicine Filter
         self.medicine_frame = ctk.CTkFrame(self.bot_row, fg_color="transparent")
         self.medicine_frame.pack(side="left", padx=15)
-        ctk.CTkLabel(self.medicine_frame, text="Medicine:").pack(side="left", padx=5)
-        self.medicine_entry = ctk.CTkEntry(self.medicine_frame, width=150, placeholder_text="Search Product...")
+        ctk.CTkLabel(self.medicine_frame, text="Medicine:", text_color="#374151").pack(side="left", padx=5)
+        self.medicine_entry = ctk.CTkEntry(self.medicine_frame, width=150, placeholder_text="Search Product...", fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
         self.medicine_entry.pack(side="left")
         
         # Status Filter
         self.status_frame = ctk.CTkFrame(self.bot_row, fg_color="transparent")
         self.status_frame.pack(side="left", padx=15)
-        ctk.CTkLabel(self.status_frame, text="Status:").pack(side="left", padx=5)
+        ctk.CTkLabel(self.status_frame, text="Status:", text_color="#374151").pack(side="left", padx=5)
         self.status_menu = ctk.CTkOptionMenu(
             self.status_frame, values=["All", "Paid", "Pending", "Cash", "Credit"],
-            width=100, fg_color="#F3F4F6", text_color="#1F2937",
+            width=100, fg_color="#F9FAFB", text_color="#1F2937",
             button_color="#E5E7EB", button_hover_color="#D1D5DB"
         )
         self.status_menu.pack(side="left")
@@ -147,8 +154,8 @@ class ReportsView(ctk.CTkFrame):
         # Expiry Days Filter (For Expiry Report)
         self.expiry_frame = ctk.CTkFrame(self.bot_row, fg_color="transparent")
         self.expiry_frame.pack(side="left", padx=15)
-        ctk.CTkLabel(self.expiry_frame, text="Expiring in (Days):").pack(side="left", padx=5)
-        self.expiry_days_entry = ctk.CTkEntry(self.expiry_frame, width=80)
+        ctk.CTkLabel(self.expiry_frame, text="Expiring in (Days):", text_color="#374151").pack(side="left", padx=5)
+        self.expiry_days_entry = ctk.CTkEntry(self.expiry_frame, width=80, fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
         self.expiry_days_entry.insert(0, "30")
         self.expiry_days_entry.pack(side="left")
         
@@ -454,3 +461,10 @@ class ReportsView(ctk.CTkFrame):
                 messagebox.showinfo("Export Successful", f"PDF saved to:\n{file_path}")
             else:
                 messagebox.showerror("Export Failed", f"Could not save PDF:\n{msg}")
+
+    def _go_back(self):
+        from ui.dashboard import Dashboard
+        for widget in self.master.winfo_children():
+            widget.destroy()
+        dashboard = Dashboard(self.master, self.user, self.app)
+        dashboard.pack(fill="both", expand=True)
