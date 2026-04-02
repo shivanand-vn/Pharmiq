@@ -1,6 +1,5 @@
 """
-Inventory View — Refactored for batch-wise stock management and enforced validation.
-Strict separation from Medicines module with controlled stock entry flows.
+Inventory View — Refactored for combined Medicine/Inventory flow.
 """
 
 import customtkinter as ctk
@@ -11,9 +10,9 @@ import re
 from models.product import (
     get_inventory_list, 
     check_batch_exists, 
-    add_new_stock, 
-    update_existing_stock_qty,
-    update_inventory_batch_details
+    add_new_stock,
+    create_medicine,
+    update_medicine_pricing
 )
 from db.connection import execute_query, fetch_all
 
@@ -33,8 +32,6 @@ DANGER = "#EF4444"
 
 
 class InventoryView(ctk.CTkFrame):
-    """Refactored View for batch-wise inventory management."""
-
     def __init__(self, master, user_context, app_ref):
         super().__init__(master, fg_color=BG_DARK)
         self.user = user_context
@@ -43,7 +40,8 @@ class InventoryView(ctk.CTkFrame):
         self.inventory_data = []
         self.medicines = []
         self.suppliers = []
-        self.editing_batch_id = None  # For "Edit Details" mode if allowed
+        
+        self.is_new_medicine_mode = False
 
         self._build_ui()
         self._load_data()
@@ -83,7 +81,6 @@ class InventoryView(ctk.CTkFrame):
         self._build_form_area()
 
     def _build_table_area(self):
-        # -- Toolbar --
         toolbar = ctk.CTkFrame(self.left_col, fg_color="transparent")
         toolbar.pack(fill="x", padx=15, pady=15)
 
@@ -98,7 +95,6 @@ class InventoryView(ctk.CTkFrame):
 
         ctk.CTkLabel(toolbar, text="Stock managed batch-wise", font=ctk.CTkFont(size=11, slant="italic"), text_color=TEXT_MUTED).pack(side="right", padx=10)
 
-        # Header
         header = ctk.CTkFrame(self.left_col, fg_color="#F3F4F6", corner_radius=8, height=40)
         header.pack(fill="x", padx=15, pady=(0, 5))
         header.pack_propagate(False)
@@ -121,73 +117,70 @@ class InventoryView(ctk.CTkFrame):
         self.loading_lbl.pack(pady=40)
 
     def _build_form_area(self):
+        self.form_header_row = ctk.CTkFrame(self.right_col, fg_color="transparent")
+        self.form_header_row.pack(fill="x", padx=20, pady=(25, 10))
+        
         self.form_title = ctk.CTkLabel(
-            self.right_col, text="Add Inventory",
+            self.form_header_row, text="Add Inventory",
             font=ctk.CTkFont(size=18, weight="bold"), text_color=TEXT_DARK
         )
-        self.form_title.pack(pady=(25, 15))
+        self.form_title.pack(side="left")
 
-        # Scrollable form container
-        form_scroll = ctk.CTkScrollableFrame(self.right_col, fg_color="transparent")
-        form_scroll.pack(fill="both", expand=True)
+        self.toggle_mode_btn = ctk.CTkButton(
+            self.form_header_row, text="➕ Add New Medicine", height=28, width=130,
+            font=ctk.CTkFont(size=11, weight="bold"), corner_radius=6,
+            fg_color=SUCCESS, hover_color=SUCCESS_HOV, text_color="#FFFFFF",
+            command=self._toggle_mode
+        )
+        self.toggle_mode_btn.pack(side="right")
 
-        def add_field(parent, label_text, placeholder, required=True, command=None):
-            row = ctk.CTkFrame(parent, fg_color="transparent")
-            row.pack(padx=20, pady=(4, 8), fill="x")
+        self.form_scroll = ctk.CTkScrollableFrame(self.right_col, fg_color="transparent")
+        self.form_scroll.pack(fill="both", expand=True)
 
+        self.field_frames = {}
+
+        def add_field(key, label_text, widget_type="entry", placeholder="", required=True, cmd=None):
+            row = ctk.CTkFrame(self.form_scroll, fg_color="transparent")
+            
             lbl_row = ctk.CTkFrame(row, fg_color="transparent")
             lbl_row.pack(fill="x", pady=(0, 3))
             ctk.CTkLabel(lbl_row, text=label_text, font=ctk.CTkFont(size=12, weight="bold"), text_color=TEXT_DARK, anchor="w", height=15).pack(side="left")
             if required:
                 ctk.CTkLabel(lbl_row, text=" *", font=ctk.CTkFont(size=13, weight="bold"), text_color=DANGER, anchor="w", height=15).pack(side="left")
 
-            entry = ctk.CTkEntry(
-                row, placeholder_text=placeholder, height=38, font=ctk.CTkFont(size=12),
-                fg_color=ENTRY_BG, border_color=BORDER_CLR, border_width=1, text_color=TEXT_DARK, corner_radius=6
-            )
-            entry.pack(fill="x")
-            if command:
-                entry.bind("<KeyRelease>", command)
-            return entry
+            if widget_type == "entry":
+                widget = ctk.CTkEntry(
+                    row, placeholder_text=placeholder, height=38, font=ctk.CTkFont(size=12),
+                    fg_color=ENTRY_BG, border_color=BORDER_CLR, border_width=1, text_color=TEXT_DARK, corner_radius=6
+                )
+                if cmd: widget.bind("<KeyRelease>", cmd)
+            elif widget_type == "combo":
+                widget = ctk.CTkComboBox(
+                    row, values=["Loading..."], height=38, font=ctk.CTkFont(size=12),
+                    fg_color=ENTRY_BG, border_color=BORDER_CLR, border_width=1, text_color=TEXT_DARK,
+                    corner_radius=6, button_color=ACCENT, button_hover_color=ACCENT_HOVER,
+                    command=cmd
+                )
+                widget.set("")
+            
+            widget.pack(fill="x")
+            self.field_frames[key] = {"frame": row, "widget": widget}
 
-        # Medicine Dropdown
-        med_row = ctk.CTkFrame(form_scroll, fg_color="transparent")
-        med_row.pack(padx=20, pady=(4, 8), fill="x")
-        ctk.CTkLabel(med_row, text="Select Medicine *", font=ctk.CTkFont(size=12, weight="bold"), text_color=TEXT_DARK, anchor="w").pack(fill="x", pady=(0, 3))
-        self.f_medicine = ctk.CTkComboBox(
-            med_row, values=["Loading..."], height=38, font=ctk.CTkFont(size=12),
-            fg_color=ENTRY_BG, border_color=BORDER_CLR, border_width=1, text_color=TEXT_DARK,
-            corner_radius=6, button_color=ACCENT, button_hover_color=ACCENT_HOVER,
-            command=lambda _: self._validate_form()
-        )
-        self.f_medicine.pack(fill="x")
-        self.f_medicine.set("")
+        # Build Fields
+        add_field("med_drop", "Medicine", "combo", cmd=self._on_med_select)
+        add_field("med_name", "Medicine Name", "entry", "Enter medicine name", cmd=lambda _: self._validate_form())
+        add_field("supplier", "Supplier", "combo", cmd=lambda _: self._validate_form())
+        add_field("mrp", "MRP (₹)", "entry", "Maximum Retail Price", cmd=lambda _: self._validate_form())
+        add_field("purchase", "Purchase Price (₹)", "entry", "Cost per unit", cmd=lambda _: self._validate_form())
+        add_field("selling", "Selling Price (₹)", "entry", "Selling per unit", cmd=lambda _: self._validate_form())
+        add_field("batch", "Batch Number", "entry", "3-20 chars", cmd=lambda _: self._validate_form())
+        add_field("expiry", "Expiry Date", "entry", "YYYY-MM-DD", cmd=lambda _: self._validate_form())
+        add_field("qty", "Quantity (Units)", "entry", "Enter positive number", cmd=lambda _: self._validate_form())
 
-        self.f_batch = add_field(form_scroll, "Batch Number", "3-20 chars", command=lambda e: self._validate_form())
-        
-        # Supplier Dropdown
-        sup_row = ctk.CTkFrame(form_scroll, fg_color="transparent")
-        sup_row.pack(padx=20, pady=(4, 8), fill="x")
-        ctk.CTkLabel(sup_row, text="Supplier *", font=ctk.CTkFont(size=12, weight="bold"), text_color=TEXT_DARK, anchor="w").pack(fill="x", pady=(0, 3))
-        self.f_supplier = ctk.CTkComboBox(
-            sup_row, values=["Loading..."], height=38, font=ctk.CTkFont(size=12),
-            fg_color=ENTRY_BG, border_color=BORDER_CLR, border_width=1, text_color=TEXT_DARK,
-            corner_radius=6, button_color=ACCENT, button_hover_color=ACCENT_HOVER,
-            command=lambda _: self._validate_form()
-        )
-        self.f_supplier.pack(fill="x")
-        self.f_supplier.set("")
-
-        self.f_expiry = add_field(form_scroll, "Expiry Date", "YYYY-MM-DD", command=lambda e: self._validate_form())
-        self.f_quantity = add_field(form_scroll, "Quantity", "Enter positive number", command=lambda e: self._validate_form())
-        self.f_purchase = add_field(form_scroll, "Purchase Price (₹)", "Price per unit", command=lambda e: self._validate_form())
-
-        # Validation status label
-        self.v_lbl = ctk.CTkLabel(form_scroll, text="", font=ctk.CTkFont(size=11), text_color=DANGER)
+        self.v_lbl = ctk.CTkLabel(self.form_scroll, text="", font=ctk.CTkFont(size=11), text_color=DANGER)
         self.v_lbl.pack(pady=5)
 
-        # Buttons
-        btn_frame = ctk.CTkFrame(form_scroll, fg_color="transparent")
+        btn_frame = ctk.CTkFrame(self.form_scroll, fg_color="transparent")
         btn_frame.pack(fill="x", padx=20, pady=(10, 20))
 
         self.save_btn = ctk.CTkButton(
@@ -198,84 +191,150 @@ class InventoryView(ctk.CTkFrame):
         )
         self.save_btn.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
-        self.clear_btn = ctk.CTkButton(
+        clear_btn = ctk.CTkButton(
             btn_frame, text="Reset", height=42,
             font=ctk.CTkFont(size=13), corner_radius=10,
             fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
             command=self._clear_form
         )
-        self.clear_btn.pack(side="left", fill="x", expand=True, padx=(5, 0))
+        clear_btn.pack(side="left", fill="x", expand=True, padx=(5, 0))
+
+        self._apply_mode_layout()
+
+    def _apply_mode_layout(self):
+        """Packs only the required fields depending on the mode."""
+        for key in self.field_frames:
+            self.field_frames[key]["frame"].pack_forget()
+
+        if self.is_new_medicine_mode:
+            self.form_title.configure(text="New Medicine")
+            self.toggle_mode_btn.configure(text="Cancel / Switch back", fg_color=DANGER, hover_color="#B91C1C")
+            self.save_btn.configure(text="Create & Add Stock")
+            
+            show_keys = ["med_name", "supplier", "mrp", "purchase", "selling", "batch", "expiry", "qty"]
+            self.field_frames["med_drop"]["widget"].set("")
+        else:
+            self.form_title.configure(text="Add Inventory")
+            self.toggle_mode_btn.configure(text="➕ Add New Medicine", fg_color=SUCCESS, hover_color=SUCCESS_HOV)
+            self.save_btn.configure(text="Add Inventory")
+
+            show_keys = ["med_drop", "supplier", "batch", "expiry", "qty", "purchase", "selling"]
+            self.field_frames["med_name"]["widget"].delete(0, 'end')
+            self.field_frames["mrp"]["widget"].delete(0, 'end')
+
+        for key in show_keys:
+            self.field_frames[key]["frame"].pack(padx=20, pady=(4, 8), fill="x", before=self.v_lbl)
+        
+        self._validate_form()
+
+    def _toggle_mode(self):
+        self.is_new_medicine_mode = not self.is_new_medicine_mode
+        self._apply_mode_layout()
+        if self.is_new_medicine_mode:
+            self.field_frames["med_name"]["widget"].focus()
+
+    def _on_med_select(self, val):
+        """Auto-fill selling price when regular medicine is selected."""
+        med_name = val.strip()
+        med_info = next((m for m in self.medicines if m["name"] == med_name), None)
+        if med_info:
+            sp = med_info.get("selling_price", 0.0)
+            s_widget = self.field_frames["selling"]["widget"]
+            s_widget.delete(0, 'end')
+            if float(sp) > 0:
+                s_widget.insert(0, str(sp))
+        self._validate_form()
 
     def _load_data(self):
         try:
             self.inventory_data = get_inventory_list(self.user["distributor_id"])
             
-            # Fetch medicines & suppliers
-            self.medicines = fetch_all("SELECT medicine_id, name FROM medicines ORDER BY name")
+            self.medicines = fetch_all("SELECT medicine_id, name, selling_price, mrp FROM medicines ORDER BY name")
             self.suppliers = fetch_all("SELECT supplier_id, name FROM suppliers WHERE distributor_id = %s ORDER BY name", (self.user["distributor_id"],))
 
             med_names = [m["name"] for m in self.medicines]
             sup_names = [s["name"] for s in self.suppliers]
-            self.f_medicine.configure(values=med_names)
-            self.f_supplier.configure(values=sup_names)
+            
+            self.field_frames["med_drop"]["widget"].configure(values=med_names)
+            self.field_frames["supplier"]["widget"].configure(values=sup_names)
 
             self._apply_filters()
         except Exception as e:
             self.loading_lbl.configure(text=f"Error: {e}", text_color=DANGER)
 
     def _validate_form(self):
-        """Perform real-time validation and enable/disable Save button."""
         errors = []
-        med = self.f_medicine.get().strip()
-        batch = self.f_batch.get().strip()
-        sup = self.f_supplier.get().strip()
-        exp = self.f_expiry.get().strip()
-        qty = self.f_quantity.get().strip()
-        purchase = self.f_purchase.get().strip()
+        w_med_d = self.field_frames["med_drop"]["widget"].get().strip()
+        w_med_n = self.field_frames["med_name"]["widget"].get().strip()
+        w_sup = self.field_frames["supplier"]["widget"].get().strip()
+        w_batch = self.field_frames["batch"]["widget"].get().strip()
+        w_exp = self.field_frames["expiry"]["widget"].get().strip()
+        w_qty = self.field_frames["qty"]["widget"].get().strip()
+        w_pur = self.field_frames["purchase"]["widget"].get().strip()
+        w_sel = self.field_frames["selling"]["widget"].get().strip()
+        w_mrp = self.field_frames["mrp"]["widget"].get().strip()
 
-        if not med or med == "Loading...": errors.append("Select Medicine")
-        if not sup or sup == "Loading...": errors.append("Select Supplier")
-        
-        # Batch: Alphanumeric, 3-20
-        if not re.match(r"^[a-zA-Z0-9]{3,20}$", batch):
-            errors.append("Batch: 3-20 Alphanumeric")
-            self.f_batch.configure(border_color=DANGER)
+        if self.is_new_medicine_mode:
+            if not w_med_n: errors.append("Medicine Name required")
+            try:
+                mrp_f = float(w_mrp)
+                sel_f = float(w_sel)
+                if mrp_f < sel_f: errors.append("MRP must be >= Selling")
+                if mrp_f <= 0: errors.append("MRP must be > 0")
+            except ValueError:
+                if not w_mrp: errors.append("MRP required")
+            if not w_sel: errors.append("Selling price required")
         else:
-            self.f_batch.configure(border_color=SUCCESS)
+            if not w_med_d or w_med_d == "Loading...": errors.append("Select Medicine")
+
+        if not w_sup or w_sup == "Loading...": errors.append("Select Supplier")
         
-        # Qty: Positive Int
+        if not re.match(r"^[a-zA-Z0-9]{3,20}$", w_batch):
+            errors.append("Batch: 3-20 Alphanumeric")
+            self.field_frames["batch"]["widget"].configure(border_color=DANGER)
+        else:
+            self.field_frames["batch"]["widget"].configure(border_color=SUCCESS)
+        
         try:
-            if int(qty) <= 0: 
-                errors.append("Qty must be > 0")
-                self.f_quantity.configure(border_color=DANGER)
+            if int(w_qty) <= 0: 
+                errors.append("Qty > 0")
+                self.field_frames["qty"]["widget"].configure(border_color=DANGER)
             else:
-                self.f_quantity.configure(border_color=SUCCESS)
+                self.field_frames["qty"]["widget"].configure(border_color=SUCCESS)
         except ValueError: 
             errors.append("Qty must be number")
-            self.f_quantity.configure(border_color=DANGER)
+            self.field_frames["qty"]["widget"].configure(border_color=DANGER)
 
-        # Purchase: Positive Float
         try:
-            if float(purchase) <= 0: 
-                errors.append("Price must be > 0")
-                self.f_purchase.configure(border_color=DANGER)
+            if float(w_pur) <= 0: 
+                errors.append("Purchase > 0")
+                self.field_frames["purchase"]["widget"].configure(border_color=DANGER)
             else:
-                self.f_purchase.configure(border_color=SUCCESS)
+                self.field_frames["purchase"]["widget"].configure(border_color=SUCCESS)
         except ValueError: 
-            errors.append("Price must be number")
-            self.f_purchase.configure(border_color=DANGER)
+            errors.append("Purchase must be number")
+            self.field_frames["purchase"]["widget"].configure(border_color=DANGER)
 
-        # Expiry: Future YYYY-MM-DD
         try:
-            exp_d = datetime.strptime(exp, "%Y-%m-%d").date()
-            if exp_d <= date.today(): 
-                errors.append("Expiry must be future")
-                self.f_expiry.configure(border_color=DANGER)
+            if float(w_sel) <= 0:
+                errors.append("Selling > 0")
+                self.field_frames["selling"]["widget"].configure(border_color=DANGER)
             else:
-                self.f_expiry.configure(border_color=SUCCESS)
+                self.field_frames["selling"]["widget"].configure(border_color=SUCCESS)
+        except ValueError:
+            errors.append("Selling must be number")
+            self.field_frames["selling"]["widget"].configure(border_color=DANGER)
+
+        try:
+            exp_d = datetime.strptime(w_exp, "%Y-%m-%d").date()
+            if exp_d <= date.today(): 
+                errors.append("Expiry > today")
+                self.field_frames["expiry"]["widget"].configure(border_color=DANGER)
+            else:
+                self.field_frames["expiry"]["widget"].configure(border_color=SUCCESS)
         except ValueError: 
             errors.append("Expiry: YYYY-MM-DD")
-            self.f_expiry.configure(border_color=DANGER)
+            self.field_frames["expiry"]["widget"].configure(border_color=DANGER)
 
         if errors:
             self.v_lbl.configure(text=f"⚠  {errors[0]}")
@@ -288,7 +347,6 @@ class InventoryView(ctk.CTkFrame):
         query = self.search_var.get().strip().lower()
         for widget in self.scroll.winfo_children(): widget.destroy()
 
-        # Sort by expiry (FIFO concept)
         self.inventory_data.sort(key=lambda x: x.get('expiry_date') if x.get('expiry_date') else date.max)
 
         filtered = [r for r in self.inventory_data if query in str(r.get("product_name", "")).lower() or query in str(r.get("batch_number", "")).lower()]
@@ -326,7 +384,6 @@ class InventoryView(ctk.CTkFrame):
             for val, w, anchor in cols:
                 ctk.CTkLabel(f, text=val, width=w, font=ctk.CTkFont(size=10, weight="bold" if text_clr != TEXT_DARK else "normal"), text_color=text_clr, anchor=anchor).pack(side="left", padx=3)
 
-            # Status Tag
             status = "ACTIVE"
             s_bg = "#ECFDF5"; s_fg = "#065F46"
             if is_expired: status = "EXPIRED"; s_bg = "#FEF2F2"; s_fg = "#991B1B"
@@ -338,103 +395,82 @@ class InventoryView(ctk.CTkFrame):
             tag.pack(side="left", padx=3, pady=10)
             ctk.CTkLabel(tag, text=status, text_color=s_fg, font=ctk.CTkFont(size=9, weight="bold")).pack(expand=True)
 
-            # Details/Edit button (Admin Only concept)
             ctk.CTkButton(
-                f, text="✎", width=40, height=26, font=ctk.CTkFont(size=12),
-                fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
-                command=lambda r=row: self._start_edit_details(r)
+                f, text="➕ Add Inventory", width=90, height=26, font=ctk.CTkFont(size=11, weight="bold"),
+                fg_color="#E0E7FF", hover_color="#C7D2FE", text_color="#3730A3",
+                command=lambda r=row: self._prep_add_inventory(r)
             ).pack(side="left", padx=5)
 
-    def _handle_save(self):
-        med_name = self.f_medicine.get()
-        sup_name = self.f_supplier.get()
-        batch_no = self.f_batch.get().strip().upper()
-        exp_date = self.f_expiry.get().strip()
-        qty = int(self.f_quantity.get().strip())
-        price = float(self.f_purchase.get().strip())
+    def _prep_add_inventory(self, row):
+        if self.is_new_medicine_mode:
+            self._toggle_mode()
+        self._clear_form()
+        med_name = row.get("product_name")
+        self.field_frames["med_drop"]["widget"].set(med_name)
+        self._on_med_select(med_name)
+        self.field_frames["supplier"]["widget"].set(row.get("supplier_name", ""))
+        self.field_frames["batch"]["widget"].focus()
+        self._validate_form()
 
-        med_id = next((m["medicine_id"] for m in self.medicines if m["name"] == med_name), None)
+    def _handle_save(self):
+        sup_name = self.field_frames["supplier"]["widget"].get()
+        batch_no = self.field_frames["batch"]["widget"].get().strip().upper()
+        exp_date = self.field_frames["expiry"]["widget"].get().strip()
+        qty = int(self.field_frames["qty"]["widget"].get().strip())
+        purchase = float(self.field_frames["purchase"]["widget"].get().strip())
+        selling = float(self.field_frames["selling"]["widget"].get().strip())
+
         sup_id = next((s["supplier_id"] for s in self.suppliers if s["name"] == sup_name), None)
 
-        # Check for existing batch (Merge Logic)
-        existing = check_batch_exists(self.user["distributor_id"], med_id, batch_no)
+        if self.is_new_medicine_mode:
+            med_name = self.field_frames["med_name"]["widget"].get().strip()
+            mrp = float(self.field_frames["mrp"]["widget"].get().strip())
 
-        if existing:
-            msg = f"This batch already exists.\nExisting Qty: {existing['quantity']}\nNew Qty: +{qty}\nTotal will be: {existing['quantity'] + qty}\n\nContinue?"
-            if not messagebox.askyesno("Batch Found", msg):
-                return
-            
+            msg = "Are you sure you want to create this medicine and add inventory?"
+            if not messagebox.askyesno("Confirm", msg): return
+
             try:
-                update_existing_stock_qty(existing["batch_id"], qty, price)
-                messagebox.showinfo("Success", "Stock updated successfully.")
+                create_medicine(med_name, manufacturer="N/A", category="General", description="", mrp=mrp, selling_price=selling)
+                self.medicines = fetch_all("SELECT medicine_id, name, selling_price, mrp FROM medicines ORDER BY name")
+                med_id = next((m["medicine_id"] for m in self.medicines if m["name"] == med_name), None)
+                
+                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, purchase)
+                
+                messagebox.showinfo("Success", "Medicine and inventory added successfully")
+                self._load_data()
+                self._clear_form()
+                
+                if self.is_new_medicine_mode:
+                    self._toggle_mode()
+
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to update stock: {e}")
+                messagebox.showerror("Error", f"Failed: {e}")
         else:
-            if not messagebox.askyesno("Confirm Add", "Are you sure you want to add this stock?"):
+            med_name = self.field_frames["med_drop"]["widget"].get()
+            med_id = next((m["medicine_id"] for m in self.medicines if m["name"] == med_name), None)
+
+            existing = check_batch_exists(self.user["distributor_id"], med_id, batch_no)
+
+            if existing:
+                messagebox.showerror("Error", "This batch already exists. Duplicate batches are not allowed. Please enter a different batch number.")
                 return
-            
+
+            if not messagebox.askyesno("Confirm", "Are you sure you want to add this inventory?"): return
+
             try:
-                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, price)
-                messagebox.showinfo("Success", "New stock batch added successfully.")
+                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, purchase)
+                update_medicine_pricing(med_id, selling, mrp=selling, discount_percent=0) # Update general pricing from batched entry just in case
+                messagebox.showinfo("Success", "Inventory added successfully")
+                self._load_data()
+                self._clear_form()
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to add stock: {e}")
-
-        self._clear_form()
-        self._load_data()
-
-    def _start_edit_details(self, row):
-        """Restricted edit mode for correcting non-quantity details."""
-        self._clear_form()
-        self.editing_batch_id = row["batch_id"]
-        self.form_title.configure(text="Edit Stock Details")
-        self.save_btn.configure(text="Apply Changes", fg_color=WARNING)
-
-        self.f_medicine.set(row["product_name"])
-        self.f_medicine.configure(state="disabled")
-        self.f_batch.insert(0, row["batch_number"])
-        self.f_supplier.set(row["supplier_name"] or "")
-        self.f_expiry.insert(0, str(row["expiry_date"]))
-        self.f_quantity.insert(0, str(row["quantity"]))
-        self.f_quantity.configure(state="disabled")  # Direct qty edit not allowed
-        self.f_purchase.insert(0, str(row["purchase_price"]))
-        
-        self.v_lbl.configure(text="⚠  Qty/Medicine locking active.", text_color=WARNING)
-        self.save_btn.configure(state="normal")
-        # Update command to handle direct updates for non-locked fields
-        self.save_btn.configure(command=self._handle_restricted_update)
-
-    def _handle_restricted_update(self):
-        """Handles updating non-locked fields in the details mode."""
-        if not messagebox.askyesno("Confirm Changes", "Apply changes to this batch details?"):
-            return
-        
-        try:
-            sup_name = self.f_supplier.get()
-            b_no = self.f_batch.get().strip().upper()
-            exp = self.f_expiry.get().strip()
-            price = float(self.f_purchase.get().strip())
-            
-            sup_id = next((s["supplier_id"] for s in self.suppliers if s["name"] == sup_name), None)
-
-            update_inventory_batch_details(self.editing_batch_id, sup_id, b_no, exp, price)
-            messagebox.showinfo("Success", "Batch details updated.")
-            self._clear_form()
-            self._load_data()
-        except Exception as e:
-            messagebox.showerror("Error", f"Update failed: {e}")
+                messagebox.showerror("Error", f"Failed: {e}")
 
     def _clear_form(self):
-        self.editing_batch_id = None
-        self.form_title.configure(text="Add Inventory")
-        self.save_btn.configure(text="Add Inventory", fg_color=SUCCESS, command=self._handle_save)
-        self.f_medicine.configure(state="normal")
-        self.f_medicine.set("")
-        self.f_batch.delete(0, "end")
-        self.f_supplier.set("")
-        self.f_expiry.delete(0, "end")
-        self.f_quantity.configure(state="normal")
-        self.f_quantity.delete(0, "end")
-        self.f_purchase.delete(0, "end")
+        for key in self.field_frames:
+            w = self.field_frames[key]["widget"]
+            if hasattr(w, "set"): w.set("")
+            elif hasattr(w, "delete"): w.delete(0, 'end')
         self.v_lbl.configure(text="")
         self.save_btn.configure(state="disabled")
 
@@ -442,3 +478,4 @@ class InventoryView(ctk.CTkFrame):
         from ui.dashboard import Dashboard
         for widget in self.master.winfo_children(): widget.destroy()
         Dashboard(self.master, self.user, self.app).pack(fill="both", expand=True)
+

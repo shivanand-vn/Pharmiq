@@ -62,7 +62,6 @@ class Dashboard(ctk.CTkFrame):
         all_nav_items = [
             ("Dashboard", "layout", True, self._go_dashboard, ["Admin", "Biller", "Accountant"]),
             ("Customers", "store", False, self._go_customers, ["Admin", "Biller"]),
-            ("Medicines", "box", False, self._go_medicines, ["Admin", "Biller", "Accountant"]),
             ("Billing/Invoices", "file-text", False, self._go_invoices, ["Admin", "Biller", "Accountant"]),
             ("Inventory", "package", False, self._go_inventory, ["Admin", "Accountant", "Biller"]),
             ("Returns", "rotate-ccw", False, self._go_returns, ["Admin", "Biller"]),
@@ -467,15 +466,8 @@ class Dashboard(ctk.CTkFrame):
         view = CustomerView(self.master, self.user, self.app)
         view.pack(fill="both", expand=True)
 
-    def _go_medicines(self):
-        from ui.medicine_view import MedicineView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = MedicineView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
-
     def _go_products(self):
-        self._go_medicines()
+        self._go_inventory()
 
     def _go_invoices(self):
         self._new_invoice()

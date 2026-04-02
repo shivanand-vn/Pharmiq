@@ -36,6 +36,25 @@ def search_products(distributor_id, query=""):
     )
 
 
+def check_medicine_exists(name):
+    """Check if a medicine already exists globally by name."""
+    return fetch_one("SELECT medicine_id FROM medicines WHERE name = %s", (name,))
+
+def create_medicine(name, manufacturer, category, description, unit="Unit", gst_percent=12.00, mrp=0.00, selling_price=0.00, discount_percent=0.00):
+    """Insert a new medicine into Master Data."""
+    # Ensure Medicine Name is unique
+    if check_medicine_exists(name):
+        raise ValueError(f"Medicine '{name}' already exists.")
+        
+    return execute_query(
+        """
+        INSERT INTO medicines 
+        (name, manufacturer, category, description, unit, gst_percent, mrp, selling_price, discount_percent)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (name, manufacturer, category, description, unit, gst_percent, mrp, selling_price, discount_percent)
+    )
+
 def get_batch_by_id(batch_id):
     """Return specific inventory batch with medicine info."""
     return fetch_one(
