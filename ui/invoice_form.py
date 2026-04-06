@@ -4,7 +4,8 @@ Dynamic product rows, customer selection, live calculations.
 """
 import customtkinter as ctk
 from tkinter import messagebox
-from datetime import date
+from datetime import date, datetime
+from tkcalendar import Calendar
 
 from models.customer import search_customers, get_customer_by_license
 from models.product import search_products, get_batch_by_id
@@ -99,9 +100,16 @@ class InvoiceForm(ctk.CTkFrame):
 
         # Entries scaled down to height=32, font=12
         col1 = add_col(fields, "Invoice Date")
-        self.date_entry = ctk.CTkEntry(col1, width=120, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
-        self.date_entry.pack(pady=(4, 0))
+        date_row = ctk.CTkFrame(col1, fg_color="transparent")
+        date_row.pack(fill="x", pady=(4, 0))
+        self.date_entry = ctk.CTkEntry(date_row, width=105, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
+        self.date_entry.pack(side="left")
         self.date_entry.insert(0, date.today().strftime("%d/%m/%Y"))
+        ctk.CTkButton(
+            date_row, text="📅", width=32, height=32, font=ctk.CTkFont(size=14),
+            corner_radius=6, fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color="#FFFFFF",
+            command=self._open_calendar,
+        ).pack(side="left", padx=(4, 0))
 
         col2 = add_col(fields, "Order No")
         self.order_entry = ctk.CTkEntry(col2, width=120, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
@@ -401,8 +409,67 @@ class InvoiceForm(ctk.CTkFrame):
             command=self._reset_form,
         ).pack()
 
+    def _open_calendar(self):
+        """Open a calendar popup to pick the invoice date (today or earlier)."""
+        cal_win = ctk.CTkToplevel(self)
+        cal_win.title("Select Invoice Date")
+        cal_win.geometry("320x320")
+        cal_win.transient(self.master)
+        cal_win.grab_set()
+        cal_win.resizable(False, False)
+
+        # Center relative to main window
+        x = self.master.winfo_x() + (self.master.winfo_width() // 2) - 160
+        y = self.master.winfo_y() + (self.master.winfo_height() // 2) - 160
+        cal_win.geometry(f"+{x}+{y}")
+
+        # Parse current entry value as initial date
+        try:
+            init_date = datetime.strptime(self.date_entry.get().strip(), "%d/%m/%Y").date()
+        except ValueError:
+            init_date = date.today()
+
+        cal = Calendar(
+            cal_win, selectmode="day",
+            year=init_date.year, month=init_date.month, day=init_date.day,
+            maxdate=date.today(),
+            date_pattern="dd/mm/yyyy",
+            background="#1B4F6B", foreground="white",
+            headersbackground="#3B82F6", headersforeground="white",
+            selectbackground="#3B82F6", selectforeground="white",
+            normalbackground="white", normalforeground="#111827",
+            weekendbackground="#F1F5F9", weekendforeground="#111827",
+            othermonthbackground="#F8FAFC", othermonthforeground="#94A3B8",
+            othermonthwebackground="#F8FAFC", othermonthweforeground="#94A3B8",
+            font=("Segoe UI", 11),
+        )
+        cal.pack(fill="both", expand=True, padx=10, pady=(10, 5))
+
+        def pick_date():
+            selected = cal.get_date()
+            self.date_entry.delete(0, "end")
+            self.date_entry.insert(0, selected)
+            cal_win.destroy()
+
+        ctk.CTkButton(
+            cal_win, text="✓  Select Date", height=36, width=140,
+            font=ctk.CTkFont(size=13, weight="bold"), corner_radius=8,
+            fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color="#FFFFFF",
+            command=pick_date,
+        ).pack(pady=(5, 10))
+
     def _generate_invoice(self):
         if not self.selected_customer: return messagebox.showwarning("Missing Customer", "Please select a customer first.")
+
+        # Validate invoice date: must be today or in the past
+        raw_date = self.date_entry.get().strip()
+        try:
+            inv_date = datetime.strptime(raw_date, "%d/%m/%Y").date()
+        except ValueError:
+            return messagebox.showerror("Invalid Date", "Invoice date must be in DD/MM/YYYY format.")
+        if inv_date > date.today():
+            return messagebox.showerror("Future Date", "Invoice date cannot be in the future. Please select today or an earlier date.")
+
         items = []
         for row in self.product_rows:
             if not row.get("batch_id"): continue
@@ -430,6 +497,7 @@ class InvoiceForm(ctk.CTkFrame):
                 customer_license_no=self.selected_customer["license_no"], items=items,
                 order_no=self.order_entry.get().strip(), lr_no=self.lr_entry.get().strip(),
                 transport=self.transport_entry.get().strip(), payment_type=self.payment_var.get(),
+                invoice_date=inv_date.strftime("%Y-%m-%d"),
             )
             customer = get_customer_by_license(self.selected_customer["license_no"])
             distributor = get_distributor_by_id(self.user["distributor_id"])

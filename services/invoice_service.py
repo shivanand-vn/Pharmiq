@@ -101,7 +101,7 @@ def build_gst_summary(items):
 
 def create_full_invoice(distributor_id, user_id, customer_license_no,
                          items, order_no="", lr_no="", transport="",
-                         payment_type="Credit"):
+                         payment_type="Credit", invoice_date=None):
     """
     High-level function: compute totals, generate invoice number,
     create invoice + items in DB. Returns the created invoice dict.
@@ -125,13 +125,16 @@ def create_full_invoice(distributor_id, user_id, customer_license_no,
     # Amount in words
     amount_words = number_to_words(totals["grand_total"])
 
+    if not invoice_date:
+        invoice_date = date.today().strftime("%Y-%m-%d")
+
     # Build invoice data
     invoice_data = {
         "invoice_no": invoice_no,
         "distributor_id": distributor_id,
         "user_id": user_id,
         "customer_license_no": customer_license_no,
-        "invoice_date": date.today().strftime("%Y-%m-%d"),
+        "invoice_date": invoice_date,
         "order_no": order_no,
         "lr_no": lr_no,
         "transport": transport,

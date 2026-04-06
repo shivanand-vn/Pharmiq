@@ -61,7 +61,7 @@ class ReportsView(ctk.CTkFrame):
         header_frame.grid(row=0, column=0, sticky="ew", padx=25, pady=(25, 10))
         
         ctk.CTkButton(
-            header_frame, text="← Back to Dashboard", width=140, height=36,
+            header_frame, text="← Back", width=80, height=36,
             font=ctk.CTkFont(size=12, weight="bold"), corner_radius=8,
             fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
             command=self._go_back,

@@ -42,7 +42,7 @@ class ReturnsView(ctk.CTkFrame):
         top.pack_propagate(False)
 
         ctk.CTkButton(
-            top, text="← Dashboard", width=120, height=36,
+            top, text="← Back", width=80, height=36,
             font=ctk.CTkFont(size=12, weight="bold"), corner_radius=8,
             fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
             command=self._go_back,

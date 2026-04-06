@@ -13,3 +13,4 @@ pillow               # Images
 requests             # API
 schedule             # Tasks
 pyinstaller          # Packaging
+tkcalendar
