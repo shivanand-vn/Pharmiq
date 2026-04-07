@@ -60,8 +60,14 @@ class InvoiceForm(ctk.CTkFrame):
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True, padx=15, pady=5)
 
-        self._build_header_section()
-        self._build_customer_section()
+        # -- Horizontal split: Invoice Details (left 40%) + Customer Details (right 60%) --
+        top_split = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        top_split.pack(fill="x", pady=(0, 10))
+        top_split.columnconfigure(0, weight=4)
+        top_split.columnconfigure(1, weight=6)
+
+        self._build_header_section(top_split)
+        self._build_customer_section(top_split)
         self._build_product_section()
         
         # Bottom layout (Totals + Actions)
@@ -81,124 +87,193 @@ class InvoiceForm(ctk.CTkFrame):
         # Add initial empty row
         self._add_product_row()
 
-    def _build_header_section(self):
-        frame = ctk.CTkFrame(self.scroll, fg_color=CARD_BG, corner_radius=10, border_width=1, border_color=BORDER_CLR)
-        frame.pack(fill="x", pady=(0, 10))
+        # Autofocus customer search
+        self.after(200, lambda: self.cust_search.focus())
+
+    def _build_header_section(self, parent):
+        frame = ctk.CTkFrame(parent, fg_color=CARD_BG, corner_radius=10, border_width=1, border_color=BORDER_CLR)
+        frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
 
         header = ctk.CTkFrame(frame, fg_color="transparent")
-        header.pack(fill="x", padx=15, pady=(10, 8))
+        header.pack(fill="x", padx=15, pady=(12, 12))
         ctk.CTkLabel(header, text="Invoice Details", font=ctk.CTkFont(size=14, weight="bold"), text_color=TEXT_DARK).pack(side="left")
 
         fields = ctk.CTkFrame(frame, fg_color="transparent")
         fields.pack(fill="x", padx=15, pady=(0, 15))
 
-        def add_col(parent, label):
-            col = ctk.CTkFrame(parent, fg_color="transparent")
-            col.pack(side="left", padx=(0, 15))
-            ctk.CTkLabel(col, text=label, font=ctk.CTkFont(size=11, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
-            return col
+        # Row 1: Invoice Date | Order No (50/50 Split)
+        r1 = ctk.CTkFrame(fields, fg_color="transparent")
+        r1.pack(fill="x", pady=(0, 15))
+        r1.columnconfigure(0, weight=1)
+        r1.columnconfigure(1, weight=1)
 
-        # Entries scaled down to height=32, font=12
-        col1 = add_col(fields, "Invoice Date")
-        date_row = ctk.CTkFrame(col1, fg_color="transparent")
-        date_row.pack(fill="x", pady=(4, 0))
-        self.date_entry = ctk.CTkEntry(date_row, width=105, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
-        self.date_entry.pack(side="left")
+        # Invoice Date
+        date_col = ctk.CTkFrame(r1, fg_color="transparent")
+        date_col.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        ctk.CTkLabel(date_col, text="Invoice Date", font=ctk.CTkFont(size=11, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
+        
+        date_input_row = ctk.CTkFrame(date_col, fg_color="transparent")
+        date_input_row.pack(fill="x", pady=(4, 0))
+        self.date_entry = ctk.CTkEntry(date_input_row, height=34, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
+        self.date_entry.pack(side="left", fill="x", expand=True)
         self.date_entry.insert(0, date.today().strftime("%d/%m/%Y"))
         ctk.CTkButton(
-            date_row, text="📅", width=32, height=32, font=ctk.CTkFont(size=14),
+            date_input_row, text="📅", width=34, height=34, font=ctk.CTkFont(size=14),
             corner_radius=6, fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color="#FFFFFF",
             command=self._open_calendar,
         ).pack(side="left", padx=(4, 0))
 
-        col2 = add_col(fields, "Order No")
-        self.order_entry = ctk.CTkEntry(col2, width=120, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
-        self.order_entry.pack(pady=(4, 0))
+        # Order No
+        order_col = ctk.CTkFrame(r1, fg_color="transparent")
+        order_col.grid(row=0, column=1, sticky="ew", padx=(10, 0))
+        ctk.CTkLabel(order_col, text="Order No", font=ctk.CTkFont(size=11, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
+        self.order_entry = ctk.CTkEntry(order_col, height=34, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
+        self.order_entry.pack(fill="x", pady=(4, 0))
         try:
             self.order_entry.insert(0, get_next_order_no(self.user["distributor_id"]))
         except Exception:
             self.order_entry.insert(0, "1")
 
-        col3 = add_col(fields, "L.R No")
-        self.lr_entry = ctk.CTkEntry(col3, width=120, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
-        self.lr_entry.pack(pady=(4, 0))
-
-        col4 = add_col(fields, "Transport")
-        self.transport_entry = ctk.CTkEntry(col4, width=150, height=32, font=ctk.CTkFont(size=12), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
-        self.transport_entry.pack(pady=(4, 0))
-
-        col5 = add_col(fields, "Payment")
+        # Row 2: Payment Radio Buttons
+        r2 = ctk.CTkFrame(fields, fg_color="transparent")
+        r2.pack(fill="x", pady=(5, 0))
+        ctk.CTkLabel(r2, text="Payment Method", font=ctk.CTkFont(size=11, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
+        
+        radio_row = ctk.CTkFrame(r2, fg_color="transparent")
+        radio_row.pack(fill="x", pady=(8, 0))
+        
         self.payment_var = ctk.StringVar(value="Credit")
-        self.payment_menu = ctk.CTkOptionMenu(
-            col5, values=["Credit", "Cash", "UPI"], variable=self.payment_var,
-            width=120, height=32, font=ctk.CTkFont(size=12),
-            fg_color=ENTRY_BG, button_color=ACCENT, button_hover_color=ACCENT_HOVER, corner_radius=6, text_color=TEXT_DARK
-        )
-        self.payment_menu.pack(pady=(4, 0))
+        opts = [("Credit", "Credit"), ("Cash", "Cash"), ("UPI", "UPI")]
+        for text, val in opts:
+            rb = ctk.CTkRadioButton(
+                radio_row, text=text, variable=self.payment_var, value=val,
+                font=ctk.CTkFont(size=12), border_color=ACCENT, hover_color=ACCENT_HOVER,
+                fg_color=ACCENT, text_color=TEXT_DARK, width=100
+            )
+            rb.pack(side="left", padx=(0, 20))
 
-    def _build_customer_section(self):
-        frame = ctk.CTkFrame(self.scroll, fg_color=CARD_BG, corner_radius=10, border_width=1, border_color=BORDER_CLR)
-        frame.pack(fill="x", pady=(0, 10))
+    def _build_customer_section(self, parent):
+        frame = ctk.CTkFrame(parent, fg_color=CARD_BG, corner_radius=10, border_width=1, border_color=BORDER_CLR)
+        frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
         header = ctk.CTkFrame(frame, fg_color="transparent")
-        header.pack(fill="x", padx=15, pady=(10, 5))
+        header.pack(fill="x", padx=15, pady=(12, 5))
         ctk.CTkLabel(header, text="Customer Details", font=ctk.CTkFont(size=14, weight="bold"), text_color=TEXT_DARK).pack(side="left")
 
         search_row = ctk.CTkFrame(frame, fg_color="transparent")
         search_row.pack(fill="x", padx=15, pady=(0, 10))
 
-        search_col = ctk.CTkFrame(search_row, fg_color="transparent")
-        search_col.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        ctk.CTkLabel(search_col, text="Search by Name or License", font=ctk.CTkFont(size=11, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
-        self.cust_search = ctk.CTkEntry(search_col, height=32, font=ctk.CTkFont(size=12), placeholder_text="Type to search...", fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
-        self.cust_search.pack(fill="x", pady=(4, 0))
+        # Separate the search from the preview for more visual weight
+        self.cust_search = ctk.CTkEntry(search_row, height=34, font=ctk.CTkFont(size=12), placeholder_text="🔍 Search customers (Name or License No)...", fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
+        self.cust_search.pack(fill="x")
         self.cust_search.bind("<KeyRelease>", self._on_customer_search)
 
-        dropdown_col = ctk.CTkFrame(search_row, fg_color="transparent")
-        dropdown_col.pack(side="left", fill="x", expand=True, padx=(10, 0))
-        ctk.CTkLabel(dropdown_col, text="Select Profile", font=ctk.CTkFont(size=11, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
-        self.cust_dropdown = ctk.CTkOptionMenu(
-            dropdown_col, values=["-- Select Customer --"], height=32, font=ctk.CTkFont(size=12),
-            fg_color=ENTRY_BG, button_color=ACCENT, button_hover_color=ACCENT_HOVER, text_color=TEXT_DARK, corner_radius=6,
-            command=self._on_customer_selected,
-        )
-        self.cust_dropdown.pack(fill="x", pady=(4, 0))
-
-        self.cust_details_frame = ctk.CTkFrame(frame, fg_color="#F8FAFC", corner_radius=8, border_width=1, border_color=BORDER_CLR)
-        self.cust_details_frame.pack(fill="x", padx=15, pady=(5, 15))
+        self.cust_details_box = ctk.CTkFrame(frame, fg_color="#F8FAFC", corner_radius=8, border_width=1, border_color=BORDER_CLR)
+        self.cust_details_box.pack(fill="both", expand=True, padx=15, pady=(5, 15))
         
-        info_inner = ctk.CTkFrame(self.cust_details_frame, fg_color="transparent")
-        info_inner.pack(fill="x", padx=15, pady=10)
+        content = ctk.CTkFrame(self.cust_details_box, fg_color="transparent")
+        content.pack(fill="both", expand=True, padx=15, pady=12)
 
-        self.cust_name_lbl = ctk.CTkLabel(info_inner, text="No customer selected", font=ctk.CTkFont(size=13, weight="bold"), text_color=TEXT_MUTED)
-        self.cust_name_lbl.pack(anchor="w")
-        self.cust_info_lbl = ctk.CTkLabel(info_inner, text="Search and select a customer to populate their billing credentials.", font=ctk.CTkFont(size=11), text_color=TEXT_MUTED, justify="left")
-        self.cust_info_lbl.pack(anchor="w", pady=(2, 0))
+        # Row 1: Shop Name — Owner Name
+        self.cust_name_lbl = ctk.CTkLabel(content, text="No customer selected", font=ctk.CTkFont(size=14, weight="bold"), text_color=TEXT_MUTED)
+        self.cust_name_lbl.pack(anchor="w", pady=(0, 10))
 
-        self._load_customers()
+        # Row 2: 3-Column Info Row (License | GST | Mobile)
+        self.info_row = ctk.CTkFrame(content, fg_color="transparent")
+        self.info_row.pack(fill="x", pady=(0, 10))
+        for i in range(3): self.info_row.columnconfigure(i, weight=1)
 
-    def _load_customers(self, query=""):
+        def add_sub_field(parent, col, label):
+            f = ctk.CTkFrame(parent, fg_color="transparent")
+            f.grid(row=0, column=col, sticky="nsew")
+            ctk.CTkLabel(f, text=label, font=ctk.CTkFont(size=10, weight="bold"), text_color=TEXT_MUTED).pack(anchor="w")
+            val = ctk.CTkLabel(f, text="—", font=ctk.CTkFont(size=12), text_color=TEXT_DARK)
+            val.pack(anchor="w")
+            return val
+
+        self.lbl_license = add_sub_field(self.info_row, 0, "License No")
+        self.lbl_gst = add_sub_field(self.info_row, 1, "GST No")
+        self.lbl_mobile = add_sub_field(self.info_row, 2, "Mobile No")
+
+        # Row 3: Address Footer
+        sep = ctk.CTkFrame(content, fg_color=BORDER_CLR, height=1)
+        sep.pack(fill="x", pady=(5, 10))
+        
+        addr_header = ctk.CTkLabel(content, text="ADDRESS", font=ctk.CTkFont(size=10, weight="bold"), text_color=TEXT_MUTED)
+        addr_header.pack(anchor="w")
+        self.lbl_address = ctk.CTkLabel(content, text="Type above to search...", font=ctk.CTkFont(size=11), text_color=TEXT_MUTED, justify="left", wraplength=400)
+        self.lbl_address.pack(anchor="w")
+
+        self._customer_list = []
+        self._cust_popup = None
+
+    def _on_customer_search(self, event=None):
+        query = self.cust_search.get().strip()
+        if len(query) < 2:
+            if self._cust_popup:
+                self._cust_popup.destroy()
+                self._cust_popup = None
+            return
+
         try:
             customers = search_customers(self.user["distributor_id"], query)
         except Exception:
             customers = []
 
         self._customer_list = customers
-        names = [f"{c['shop_name']} ({c['license_no']})" for c in customers]
-        if not names: names = ["-- No customers found --"]
-        self.cust_dropdown.configure(values=names)
-        if names: self.cust_dropdown.set(names[0])
 
-    def _on_customer_search(self, event=None):
-        self._load_customers(self.cust_search.get().strip())
+        if self._cust_popup:
+            self._cust_popup.destroy()
+            self._cust_popup = None
 
-    def _on_customer_selected(self, choice):
-        for c in self._customer_list:
-            if f"{c['shop_name']} ({c['license_no']})" == choice:
-                self.selected_customer = c
-                self.cust_name_lbl.configure(text=f"🏪  {c['shop_name']}  —  {c['license_holder_name']}", text_color=TEXT_DARK)
-                self.cust_info_lbl.configure(text=f"📍 {c.get('address', 'N/A')}    📞 {c.get('mobile_no', 'N/A')}    GSTIN: {c.get('gst_no', 'N/A')}    Licence: {c['license_no']}", text_color=TEXT_MUTED)
-                return
+        if not customers:
+            return
+
+        popup = ctk.CTkToplevel(self)
+        popup.overrideredirect(True)
+        popup.attributes("-topmost", True)
+        self._cust_popup = popup
+
+        x = self.cust_search.winfo_rootx()
+        y = self.cust_search.winfo_rooty() + self.cust_search.winfo_height()
+        w = self.cust_search.winfo_width()
+        popup.geometry(f"{w}x{min(len(customers) * 40, 250)}+{x}+{y}")
+
+        popup_frame = ctk.CTkScrollableFrame(popup, fg_color=CARD_BG, corner_radius=6, border_width=1, border_color=BORDER_CLR)
+        popup_frame.pack(fill="both", expand=True)
+
+        for c in customers:
+            label = f"🏪 {c['shop_name']}  —  {c.get('license_no', '')}  |  📞 {c.get('mobile_no', 'N/A')}"
+            btn = ctk.CTkButton(
+                popup_frame, text=label, height=36, font=ctk.CTkFont(size=11), corner_radius=4,
+                fg_color="transparent", hover_color="#F1F5F9", text_color=TEXT_DARK, anchor="w",
+                command=lambda cust=c, pp=popup: self._select_customer(cust, pp),
+            )
+            btn.pack(fill="x", padx=4, pady=2)
+
+        popup.bind("<FocusOut>", lambda e: self._close_cust_popup())
+
+    def _close_cust_popup(self):
+        if self._cust_popup:
+            self._cust_popup.destroy()
+            self._cust_popup = None
+
+    def _select_customer(self, c, popup):
+        popup.destroy()
+        self._cust_popup = None
+        self.selected_customer = c
+        self.cust_search.delete(0, "end")
+        self.cust_search.insert(0, f"{c['shop_name']} ({c['license_no']})")
+        
+        # UI Updates for structured preview
+        self.cust_name_lbl.configure(text=f"🏪  {c['shop_name']}  —  {c.get('license_holder_name', 'Owner Name')}", text_color=TEXT_DARK)
+        self.lbl_license.configure(text=c['license_no'], text_color=TEXT_DARK)
+        self.lbl_gst.configure(text=c.get('gst_no', 'N/A'), text_color=TEXT_DARK)
+        self.lbl_mobile.configure(text=c.get('mobile_no', 'N/A'), text_color=TEXT_DARK)
+        
+        addr_parts = [c.get('address_line1', ''), c.get('city', ''), c.get('state', '')]
+        address = ', '.join(p for p in addr_parts if p) or c.get('address', 'N/A')
+        self.lbl_address.configure(text=address, text_color=TEXT_DARK)
 
     def _build_product_section(self):
         frame = ctk.CTkFrame(self.scroll, fg_color=CARD_BG, corner_radius=10, border_width=1, border_color=BORDER_CLR)
@@ -293,7 +368,7 @@ class InvoiceForm(ctk.CTkFrame):
 
         entry = row_data["product_entry"]
         x, y = entry.winfo_rootx(), entry.winfo_rooty() + entry.winfo_height()
-        popup.geometry(f"480x{min(len(results) * 32, 220)}+{x}+{y}")
+        popup.geometry(f"520x{min(len(results) * 40, 350)}+{x}+{y}")
 
         popup_frame = ctk.CTkScrollableFrame(popup, fg_color=CARD_BG, corner_radius=6, border_width=1, border_color=BORDER_CLR)
         popup_frame.pack(fill="both", expand=True)
@@ -303,7 +378,7 @@ class InvoiceForm(ctk.CTkFrame):
             if hasattr(exp, "strftime"): exp = exp.strftime("%m/%y")
             label = f"{prod['product_name']} | B: {prod['batch_number']} | MRP: ₹{prod['mrp']} | Qty: {prod['available_qty']} | Exp: {exp}"
             btn = ctk.CTkButton(
-                popup_frame, text=label, height=28, font=ctk.CTkFont(size=11), corner_radius=4,
+                popup_frame, text=label, height=36, font=ctk.CTkFont(size=11), corner_radius=4,
                 fg_color="transparent", hover_color="#F1F5F9", text_color=TEXT_DARK, anchor="w",
                 command=lambda p=prod, pp=popup: self._select_product(row_data, p, pp),
             )

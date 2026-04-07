@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS customers (
     shop_name VARCHAR(200),
     license_holder_name VARCHAR(200),
     mobile_no VARCHAR(15),
-    gst_no VARCHAR(20),
+    gst_no VARCHAR(20) NOT NULL UNIQUE,
     email VARCHAR(100),
     address_line1 VARCHAR(255) NOT NULL DEFAULT '',
     address_line2 VARCHAR(255) DEFAULT NULL,

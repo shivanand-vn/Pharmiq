@@ -7,7 +7,7 @@ Enhanced with structured address fields, inline validation, and Indian states dr
 import customtkinter as ctk
 from tkinter import messagebox
 import re
-from models.customer import search_customers, create_customer, update_customer, toggle_customer_status
+from models.customer import search_customers, create_customer, update_customer, toggle_customer_status, check_gst_exists
 
 # ── Colour palette ──
 BG_DARK = "#F8F9FA"
@@ -43,6 +43,7 @@ RE_CONTACT = re.compile(r'^[6-9]\d{9}$')
 RE_NAME = re.compile(r'^[A-Za-z .&]{3,50}$')
 RE_PINCODE = re.compile(r'^[1-9]\d{5}$')
 RE_EMAIL = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+RE_GST = re.compile(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$')
 
 
 class CustomerView(ctk.CTkFrame):
@@ -108,21 +109,25 @@ class CustomerView(ctk.CTkFrame):
         search_entry.bind("<KeyRelease>", self._schedule_search)
 
         header = ctk.CTkFrame(self.left_col, fg_color="#F3F4F6", corner_radius=8, height=40)
-        header.pack(fill="x", padx=15, pady=(0, 5))
+        # Pad right (35) to account for scrollbar area (15 + 20)
+        header.pack(fill="x", padx=(15, 35), pady=(0, 5))
         header.pack_propagate(False)
+        self.left_col_header = header
 
         cols = [
-            ("License No", 120), ("Shop Name", 160), ("Contact", 100), ("City", 90), ("Actions", 140)
+            ("License No", 140), ("GST No", 150), ("Shop Name", 220), ("Contact", 110), ("City", 100), ("Actions", 140)
         ]
 
-        for text, w in cols:
+        for i, (text, w) in enumerate(cols):
+            self.left_col_header.columnconfigure(i, weight=1 if text == "Shop Name" else 0)
             ctk.CTkLabel(
-                header, text=text, width=w, font=ctk.CTkFont(size=12, weight="bold"),
+                self.left_col_header, text=text, width=w, font=ctk.CTkFont(size=12, weight="bold"),
                 text_color=TEXT_MUTED, anchor="w" if text != "Actions" else "center"
-            ).pack(side="left", padx=5)
+            ).grid(row=0, column=i, sticky="nsew", padx=0) # Removed padx here to rely on frame padx
 
         self.scroll = ctk.CTkScrollableFrame(self.left_col, fg_color="transparent")
-        self.scroll.pack(fill="both", expand=True, padx=10, pady=(0, 15))
+        # Match horizontal padding with header (15) for perfect alignment
+        self.scroll.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
     def _schedule_search(self, event=None):
         if self._search_job:
@@ -147,6 +152,8 @@ class CustomerView(ctk.CTkFrame):
 
         self.f_license, self._v_license = self._add_field(
             form_scroll, "License No", "e.g. KA-AB1-123456", True)
+        self.f_gst, self._v_gst = self._add_field(
+            form_scroll, "GST No", "e.g. 29ABCDE1234F1Z5", True)
         self.f_shop_name, self._v_shop = self._add_field(
             form_scroll, "Shop Name", "e.g. Name of the Pharmacy", True)
         self.f_owner_name, self._v_owner = self._add_field(
@@ -308,6 +315,8 @@ class CustomerView(ctk.CTkFrame):
         """Bind real-time validation to all fields."""
         self.f_license.bind("<KeyRelease>", lambda e: self._validate_license())
         self.f_license.bind("<FocusOut>", lambda e: self._validate_license())
+        self.f_gst.bind("<KeyRelease>", lambda e: self._validate_gst())
+        self.f_gst.bind("<FocusOut>", lambda e: self._validate_gst())
         self.f_shop_name.bind("<KeyRelease>", lambda e: self._validate_name())
         self.f_shop_name.bind("<FocusOut>", lambda e: self._validate_name())
         self.f_owner_name.bind("<KeyRelease>", lambda e: self._validate_owner())
@@ -328,8 +337,9 @@ class CustomerView(ctk.CTkFrame):
         self.f_state.bind("<KeyRelease>", lambda e: self._validate_state())
         self.f_state.bind("<FocusOut>", lambda e: self._validate_state())
 
-        # Auto-uppercase license number
+        # Auto-uppercase license and GST
         self.f_license.bind("<KeyRelease>", lambda e: self._auto_upper_license(), add="+")
+        self.f_gst.bind("<KeyRelease>", lambda e: self._auto_upper_gst(), add="+")
 
     def _auto_upper_license(self):
         val = self.f_license.get()
@@ -339,6 +349,15 @@ class CustomerView(ctk.CTkFrame):
             self.f_license.delete(0, "end")
             self.f_license.insert(0, upper)
             self.f_license.icursor(pos)
+
+    def _auto_upper_gst(self):
+        val = self.f_gst.get()
+        upper = val.upper()
+        if val != upper:
+            pos = self.f_gst.index("insert")
+            self.f_gst.delete(0, "end")
+            self.f_gst.insert(0, upper)
+            self.f_gst.icursor(pos)
 
     def _set_valid(self, entry, vlabel, msg=""):
         entry.configure(border_color=VALID_BORDER)
@@ -368,6 +387,32 @@ class CustomerView(ctk.CTkFrame):
         self._set_invalid(self.f_license, self._v_license, "Format: KA-BG2-283573")
         self._validation_state["license"] = False
         return False
+
+    def _validate_gst(self):
+        val = self.f_gst.get().strip().upper()
+        if not val:
+            self._set_invalid(self.f_gst, self._v_gst, "GST Number is required")
+            self._validation_state["gst"] = False
+            return False
+        if len(val) != 15:
+            self._set_invalid(self.f_gst, self._v_gst, f"Must be exactly 15 characters ({len(val)}/15)")
+            self._validation_state["gst"] = False
+            return False
+        if not RE_GST.match(val):
+            self._set_invalid(self.f_gst, self._v_gst, "Invalid GST format")
+            self._validation_state["gst"] = False
+            return False
+        # Check uniqueness
+        try:
+            if check_gst_exists(val, exclude_license=self.editing_license):
+                self._set_invalid(self.f_gst, self._v_gst, "❌ User with this GST already exists")
+                self._validation_state["gst"] = False
+                return False
+        except Exception:
+            pass
+        self._set_valid(self.f_gst, self._v_gst, "✔ Valid GST No.")
+        self._validation_state["gst"] = True
+        return True
 
     def _validate_name(self):
         val = self.f_shop_name.get().strip()
@@ -498,6 +543,7 @@ class CustomerView(ctk.CTkFrame):
         """Enable save only when all required fields are valid."""
         missing = []
         if not RE_LICENSE.match(self.f_license.get().strip()): missing.append("license")
+        if not RE_GST.match(self.f_gst.get().strip().upper()): missing.append("gst")
         if not RE_NAME.match(self.f_shop_name.get().strip()): missing.append("name")
         if not RE_NAME.match(self.f_owner_name.get().strip()): missing.append("owner")
         if not RE_CONTACT.match(self.f_mobile.get().strip()): missing.append("mobile")
@@ -515,7 +561,7 @@ class CustomerView(ctk.CTkFrame):
         if not RE_PINCODE.match(self.f_pincode.get().strip()): missing.append("pincode")
 
         # Update dictionary synchronicity so everything aligns perfectly
-        for k in ["license", "name", "owner", "mobile", "email", "addr1", "city", "dist", "state", "pincode"]:
+        for k in ["license", "gst", "name", "owner", "mobile", "email", "addr1", "city", "dist", "state", "pincode"]:
             self._validation_state[k] = (k not in missing)
         
         # Debugging step: Display missing fields in the form status
@@ -534,6 +580,7 @@ class CustomerView(ctk.CTkFrame):
         """Run all validators and return True if form is valid."""
         results = [
             self._validate_license(),
+            self._validate_gst(),
             self._validate_name(),
             self._validate_owner(),
             self._validate_mobile(),
@@ -557,6 +604,7 @@ class CustomerView(ctk.CTkFrame):
             customers = []
             print(f"Error loading customers: {e}")
 
+        # Clear previous rows
         for widget in self.scroll.winfo_children():
             widget.destroy()
 
@@ -565,25 +613,36 @@ class CustomerView(ctk.CTkFrame):
                          font=ctk.CTkFont(size=13), text_color=TEXT_MUTED).pack(pady=40)
             return
 
-        cols = [("license_no", 120), ("shop_name", 160), ("mobile_no", 100), ("city", 90)]
+        # Main rows container anchored to the top (North)
+        rows_list = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        rows_list.pack(fill="x", anchor="n")
+
+        cols = [("license_no", 140), ("gst_no", 150), ("shop_name", 220), ("mobile_no", 110), ("city", 100)]
 
         for row in customers:
-            frame = ctk.CTkFrame(self.scroll, fg_color="transparent", height=45)
-            frame.pack(fill="x", pady=2)
+            # Consistent, compact row height (34px)
+            frame = ctk.CTkFrame(rows_list, fg_color="transparent", height=34)
+            frame.pack(fill="x", pady=0)
             frame.pack_propagate(False)
-            ctk.CTkFrame(self.scroll, fg_color=BORDER_CLR, height=1).pack(fill="x", padx=5)
+            
+            # Use grid for data columns within the fixed-height frame
+            frame.rowconfigure(0, weight=1)
+            
+            # Thinnest separator line
+            ctk.CTkFrame(rows_list, fg_color=BORDER_CLR, height=1).pack(fill="x", padx=5)
 
-            for key, w in cols:
+            for i, (key, w) in enumerate(cols):
+                frame.columnconfigure(i, weight=1 if key == "shop_name" else 0)
                 val = str(row.get(key) or "N/A")[:25]
                 ctk.CTkLabel(
                     frame, text=val, width=w, font=ctk.CTkFont(size=12),
                     text_color=TEXT_DARK, anchor="w"
-                ).pack(side="left", padx=5)
+                ).grid(row=0, column=i, sticky="nsew", padx=0)
 
             # Actions
             action_frame = ctk.CTkFrame(frame, width=140, fg_color="transparent")
+            action_frame.grid(row=0, column=5, sticky="nsew", padx=5, pady=3)
             action_frame.pack_propagate(False)
-            action_frame.pack(side="left", padx=5, pady=5)
 
             ctk.CTkButton(
                 action_frame, text="Edit", width=60, height=28,
@@ -603,6 +662,7 @@ class CustomerView(ctk.CTkFrame):
         self.save_btn.configure(text="Update")
 
         self.f_license.insert(0, row.get("license_no", ""))
+        self.f_gst.insert(0, row.get("gst_no", "") or "")
         self.f_shop_name.insert(0, row.get("shop_name", ""))
         self.f_owner_name.insert(0, row.get("license_holder_name", "") or "")
         self.f_mobile.insert(0, row.get("mobile_no", ""))
@@ -627,7 +687,7 @@ class CustomerView(ctk.CTkFrame):
         self.form_status.configure(text="")
         self._validation_state.clear()
 
-        for entry in [self.f_license, self.f_shop_name, self.f_owner_name, self.f_mobile, self.f_email,
+        for entry in [self.f_license, self.f_gst, self.f_shop_name, self.f_owner_name, self.f_mobile, self.f_email,
                       self.f_addr1, self.f_addr2, self.f_city, self.f_dist, self.f_pincode]:
             entry.delete(0, "end")
             entry.configure(border_color=BORDER_CLR)
@@ -636,7 +696,7 @@ class CustomerView(ctk.CTkFrame):
         self.f_state.configure(border_color=BORDER_CLR)
 
         # Clear validation labels
-        for vlbl in [self._v_license, self._v_shop, self._v_owner, self._v_mobile, self._v_email,
+        for vlbl in [self._v_license, self._v_gst, self._v_shop, self._v_owner, self._v_mobile, self._v_email,
                      self._v_addr1, self._v_city, self._v_dist, self._v_state, self._v_pincode]:
             vlbl.configure(text="")
 
@@ -649,6 +709,7 @@ class CustomerView(ctk.CTkFrame):
             return
 
         license_no = self.f_license.get().strip().upper()
+        gst_no = self.f_gst.get().strip().upper()
         shop_name = self.f_shop_name.get().strip()
         owner_name = self.f_owner_name.get().strip()
         mobile = self.f_mobile.get().strip()
@@ -659,6 +720,15 @@ class CustomerView(ctk.CTkFrame):
         dist = self.f_dist.get().strip()
         state = self.f_state.get().strip()
         pincode = self.f_pincode.get().strip()
+
+        # Backend GST uniqueness check
+        try:
+            if check_gst_exists(gst_no, exclude_license=self.editing_license):
+                self.form_status.configure(text="✗ GST already exists.", text_color=DANGER)
+                messagebox.showerror("Duplicate GST", f"A customer with GST No '{gst_no}' already exists.")
+                return
+        except Exception:
+            pass
 
         # Normalize license — trim extra spaces
         license_no = re.sub(r'\s+', ' ', license_no).strip()
@@ -673,7 +743,7 @@ class CustomerView(ctk.CTkFrame):
             if self.editing_license:
                 update_customer(
                     self.editing_license, license_no, shop_name,
-                    name=owner_name, mobile=mobile, gst="", email=email,
+                    name=owner_name, mobile=mobile, gst=gst_no, email=email,
                     address_line1=addr1, address_line2=addr2,
                     city=city, dist=dist, state=state, pincode=pincode
                 )
@@ -682,7 +752,7 @@ class CustomerView(ctk.CTkFrame):
             else:
                 create_customer(
                     self.user["distributor_id"], license_no, shop_name,
-                    name=owner_name, mobile=mobile, gst="", email=email,
+                    name=owner_name, mobile=mobile, gst=gst_no, email=email,
                     address_line1=addr1, address_line2=addr2,
                     city=city, dist=dist, state=state, pincode=pincode
                 )
@@ -694,7 +764,11 @@ class CustomerView(ctk.CTkFrame):
 
         except Exception as e:
             err = str(e).lower()
-            if "duplicate entry" in err:
+            if "duplicate entry" in err and "gst" in err:
+                self.form_status.configure(
+                    text="✗ Customer with this GST No already exists.", text_color=DANGER)
+                messagebox.showerror("Duplicate GST", f"A customer with GST No '{gst_no}' already exists in the system.")
+            elif "duplicate entry" in err:
                 self.form_status.configure(
                     text="✗ Customer with this License No already exists.", text_color=DANGER)
                 messagebox.showerror("Duplicate License", f"A customer with License No '{license_no}' already exists in the system.")

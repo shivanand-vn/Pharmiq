@@ -6,6 +6,21 @@ Supports structured address fields.
 from db.connection import fetch_one, fetch_all, execute_query
 
 
+def check_gst_exists(gst_no, exclude_license=None):
+    """Check if a GST number already exists. Optionally exclude a license_no (for edits)."""
+    if exclude_license:
+        row = fetch_one(
+            "SELECT license_no FROM customers WHERE gst_no = %s AND license_no != %s AND status = 'active'",
+            (gst_no, exclude_license)
+        )
+    else:
+        row = fetch_one(
+            "SELECT license_no FROM customers WHERE gst_no = %s AND status = 'active'",
+            (gst_no,)
+        )
+    return row is not None
+
+
 def get_customer_by_license(license_no):
     """Return customer dict by license_no or None."""
     return fetch_one(
