@@ -19,13 +19,13 @@ def run_migration():
         c.execute("""
             CREATE TABLE IF NOT EXISTS returns (
                 return_id INT AUTO_INCREMENT PRIMARY KEY,
-                invoice_id INT NOT NULL,
+                invoice_no VARCHAR(30) NOT NULL,
                 customer_license_no VARCHAR(50) NOT NULL,
                 user_id INT NOT NULL,
                 return_date DATE NOT NULL,
                 total_refund DECIMAL(12,2) DEFAULT 0.00,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (invoice_id) REFERENCES invoices(invoice_id),
+                FOREIGN KEY (invoice_no) REFERENCES invoices(invoice_no),
                 FOREIGN KEY (customer_license_no) REFERENCES customers(license_no),
                 FOREIGN KEY (user_id) REFERENCES users(user_id)
             ) ENGINE=InnoDB

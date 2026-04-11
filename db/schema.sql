@@ -96,28 +96,34 @@ CREATE TABLE IF NOT EXISTS suppliers (
 ) ENGINE=InnoDB;
 
 -- ----------------------------
--- MEDICINES
+-- MEDICINES (MASTER DATA)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS medicines (
     medicine_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
-    unit VARCHAR(30),
-    gst_percent DECIMAL(5,2) DEFAULT 12.00
+    manufacturer VARCHAR(200),
+    category VARCHAR(100),
+    description TEXT,
+    unit VARCHAR(30) DEFAULT 'Unit',
+    gst_percent DECIMAL(5,2) DEFAULT 12.00,
+    mrp DECIMAL(10,2) DEFAULT 0.00,
+    trp DECIMAL(10,2) DEFAULT 0.00,
+    discount_percent DECIMAL(5,2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ----------------------------
--- BATCHES
+-- INVENTORY_BATCHES
 -- ----------------------------
-CREATE TABLE IF NOT EXISTS batches (
+CREATE TABLE IF NOT EXISTS inventory_batches (
     batch_id INT AUTO_INCREMENT PRIMARY KEY,
     medicine_id INT NOT NULL,
     supplier_id INT NOT NULL,
     distributor_id INT NOT NULL,
-    batch_no VARCHAR(50),
+    batch_number VARCHAR(50),
     expiry_date DATE,
     quantity INT DEFAULT 0,
     purchase_price DECIMAL(10,2),
-    mrp DECIMAL(10,2),
     FOREIGN KEY (medicine_id) REFERENCES medicines(medicine_id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
     FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id)
@@ -148,7 +154,7 @@ CREATE TABLE IF NOT EXISTS purchase_items (
     quantity INT,
     price DECIMAL(10,2),
     FOREIGN KEY (purchase_id) REFERENCES purchases(purchase_id),
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
+    FOREIGN KEY (batch_id) REFERENCES inventory_batches(batch_id)
 ) ENGINE=InnoDB;
 
 -- ----------------------------
@@ -181,23 +187,19 @@ CREATE TABLE IF NOT EXISTS sale_items (
     gst_percent DECIMAL(5,2),
     gst_value DECIMAL(10,2),
     FOREIGN KEY (sale_id) REFERENCES sales(sale_id),
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
+    FOREIGN KEY (batch_id) REFERENCES inventory_batches(batch_id)
 ) ENGINE=InnoDB;
 
 -- ----------------------------
 -- INVOICES
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS invoices (
-    invoice_id INT AUTO_INCREMENT PRIMARY KEY,
-    invoice_no VARCHAR(30) NOT NULL,
+    invoice_no VARCHAR(30) PRIMARY KEY,
     distributor_id INT NOT NULL,
     user_id INT NOT NULL,
     customer_license_no VARCHAR(50) NOT NULL,
     invoice_date DATE NOT NULL,
-    order_no VARCHAR(30),
-    lr_no VARCHAR(30),
-    transport VARCHAR(100),
-    payment_type ENUM('Credit','Cash') DEFAULT 'Credit',
+    payment_type ENUM('Credit','Cash','UPI') DEFAULT 'Credit',
     subtotal DECIMAL(12,2) DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
     sgst DECIMAL(10,2) DEFAULT 0.00,
@@ -206,7 +208,6 @@ CREATE TABLE IF NOT EXISTS invoices (
     grand_total DECIMAL(12,2) DEFAULT 0.00,
     amount_in_words VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_invoice_no_dist (invoice_no, distributor_id),
     FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (customer_license_no) REFERENCES customers(license_no)
@@ -217,19 +218,52 @@ CREATE TABLE IF NOT EXISTS invoices (
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS invoice_items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
-    invoice_id INT NOT NULL,
+    invoice_no VARCHAR(30) NOT NULL,
     batch_id INT NOT NULL,
     product_name VARCHAR(200),
     batch_no VARCHAR(50),
     expiry_date DATE,
     qty INT,
+    returned_quantity INT DEFAULT 0,
     mrp DECIMAL(10,2),
     rate DECIMAL(10,2),
+    trp DECIMAL(10,2),
     discount_percent DECIMAL(5,2) DEFAULT 0.00,
     gst_percent DECIMAL(5,2) DEFAULT 0.00,
     amount DECIMAL(12,2) DEFAULT 0.00,
-    FOREIGN KEY (invoice_id) REFERENCES invoices(invoice_id) ON DELETE CASCADE,
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
+    FOREIGN KEY (invoice_no) REFERENCES invoices(invoice_no) ON DELETE CASCADE,
+    FOREIGN KEY (batch_id) REFERENCES inventory_batches(batch_id)
+) ENGINE=InnoDB;
+
+-- ----------------------------
+-- RETURNS
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `returns` (
+    return_id INT AUTO_INCREMENT PRIMARY KEY,
+    invoice_no VARCHAR(30) NOT NULL,
+    customer_license_no VARCHAR(50) NOT NULL,
+    user_id INT NOT NULL,
+    return_date DATE NOT NULL,
+    total_refund DECIMAL(12,2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (invoice_no) REFERENCES invoices(invoice_no),
+    FOREIGN KEY (customer_license_no) REFERENCES customers(license_no),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+) ENGINE=InnoDB;
+
+-- ----------------------------
+-- RETURN_ITEMS
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS return_items (
+    return_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    return_id INT NOT NULL,
+    invoice_item_id INT NOT NULL,
+    batch_id INT NOT NULL,
+    quantity INT NOT NULL,
+    refund_amount DECIMAL(12,2) NOT NULL,
+    FOREIGN KEY (return_id) REFERENCES `returns`(return_id) ON DELETE CASCADE,
+    FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(item_id),
+    FOREIGN KEY (batch_id) REFERENCES inventory_batches(batch_id)
 ) ENGINE=InnoDB;
 
 -- ----------------------------
