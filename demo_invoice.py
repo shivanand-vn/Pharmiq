@@ -85,15 +85,11 @@ def generate_demo_pdf():
 
     # ── Dummy invoice ──
     invoice = {
-        "invoice_id": 1,
         "invoice_no": "RP00001",
         "distributor_id": 1,
         "user_id": 1,
         "customer_license_no": "REG NO KMC 118112",
         "invoice_date": date.today(),
-        "order_no": "ORD-2026-001",
-        "lr_no": "LR28032026",
-        "transport": "VRL Logistics",
         "payment_type": "Credit",
         "subtotal": subtotal,
         "discount_amount": round(total_discount, 2),

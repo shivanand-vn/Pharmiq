@@ -190,15 +190,15 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
 
     meta_data = [[
         Paragraph(f"<b>Invoice No:</b> {invoice.get('invoice_no', '')}", st["small"]),
-        Paragraph(f"<b>Order No:</b> {invoice.get('order_no', '')}", st["small"]),
+        Paragraph("", st["small"]),
         Paragraph(f"<b>Cases:</b> 0", st["small"]),
     ], [
         Paragraph(f"<b>Invoice Date:</b> {inv_date}", st["small"]),
         Paragraph(f"<b>Near Date:</b> ", st["small"]),
-        Paragraph(f"<b>Transport:</b> {invoice.get('transport', '')}", st["small"]),
+        Paragraph("", st["small"]),
     ], [
         Paragraph(f"<b>Due Date:</b> ", st["small"]),
-        Paragraph(f"<b>L.R. No:</b> {invoice.get('lr_no', '')}", st["small"]),
+        Paragraph("", st["small"]),
         Paragraph(f"<b>Licence No:</b> {customer.get('license_no', '')}", st["small"]),
     ]]
 
@@ -242,7 +242,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         Paragraph("<b>Exp</b>", st["small_bold"]),
         Paragraph("<b>M.R.P</b>", st["small_bold"]),
         Paragraph("<b>Tot Qty</b>", st["small_bold"]),
-        Paragraph("<b>Rate</b>", st["small_bold"]),
+        Paragraph("<b>TRP</b>", st["small_bold"]),
         Paragraph("<b>Dis%</b>", st["small_bold"]),
         Paragraph("<b>Free Dis Val*</b>", st["small_bold"]),
         Paragraph("<b>Value*</b>", st["small_bold"]),
@@ -267,7 +267,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
             Paragraph(str(exp_date), st["small"]),
             Paragraph(f"{float(item.get('mrp', 0)):.2f}", st["small"]),
             Paragraph(str(item.get("qty", "")), st["small"]),
-            Paragraph(f"{float(item.get('rate', 0)):.2f}", st["small"]),
+            Paragraph(f"{float(item.get('trp', 0)):.2f}", st["small"]),
             Paragraph(f"{float(item.get('discount_percent', 0)):.1f}", st["small"]),
             Paragraph("", st["small"]),
             Paragraph(f"{float(item.get('amount', 0)):.2f}", st["small"]),
