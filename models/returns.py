@@ -13,7 +13,7 @@ def get_returnable_invoice(invoice_no, distributor_id):
     # 1. Fetch invoice info
     invoice = fetch_one(
         """
-        SELECT i.invoice_id, i.invoice_no, i.customer_license_no, i.invoice_date,
+        SELECT i.invoice_no, i.customer_license_no, i.invoice_date,
                c.shop_name, c.license_holder_name
         FROM invoices i
         JOIN customers c ON i.customer_license_no = c.license_no
@@ -32,9 +32,9 @@ def get_returnable_invoice(invoice_no, distributor_id):
             item_id, product_name, batch_no, expiry_date, batch_id,
             qty as sold_qty, returned_quantity, rate, gst_percent
         FROM invoice_items
-        WHERE invoice_id = %s
+        WHERE invoice_no = %s
         """,
-        (invoice['invoice_id'],)
+        (invoice['invoice_no'],)
     )
     
     invoice['items'] = items
@@ -43,7 +43,7 @@ def get_returnable_invoice(invoice_no, distributor_id):
 def create_return(return_data, items):
     """
     Process a return in a single transaction.
-    return_data: dict {invoice_id, customer_license_no, user_id, return_date, total_refund}
+    return_data: dict {invoice_no, customer_license_no, user_id, return_date, total_refund}
     items: list of dicts {invoice_item_id, batch_id, quantity, refund_amount}
     """
     conn = get_connection()
@@ -53,9 +53,9 @@ def create_return(return_data, items):
         cursor.execute(
             """
             INSERT INTO returns 
-                (invoice_id, customer_license_no, user_id, return_date, total_refund)
+                (invoice_no, customer_license_no, user_id, return_date, total_refund)
             VALUES 
-                (%(invoice_id)s, %(customer_license_no)s, %(user_id)s, %(return_date)s, %(total_refund)s)
+                (%(invoice_no)s, %(customer_license_no)s, %(user_id)s, %(return_date)s, %(total_refund)s)
             """,
             return_data
         )
@@ -101,9 +101,9 @@ def get_returns_list(distributor_id, limit=50):
     """Fetch return history for a distributor."""
     return fetch_all(
         """
-        SELECT r.return_id, r.return_date, r.total_refund, r.invoice_id, i.invoice_no, c.shop_name
+        SELECT r.return_id, r.return_date, r.total_refund, r.invoice_no, c.shop_name
         FROM returns r
-        JOIN invoices i ON r.invoice_id = i.invoice_id
+        JOIN invoices i ON r.invoice_no = i.invoice_no
         JOIN customers c ON r.customer_license_no = c.license_no
         WHERE i.distributor_id = %s
         ORDER BY r.created_at DESC

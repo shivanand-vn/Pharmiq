@@ -234,7 +234,7 @@ class ReturnsView(ctk.CTkFrame):
 
         try:
             return_data = {
-                "invoice_id": self.current_invoice['invoice_id'],
+                "invoice_no": self.current_invoice['invoice_no'],
                 "customer_license_no": self.current_invoice['customer_license_no'],
                 "user_id": self.user['user_id'],
                 "return_date": date.today().strftime("%Y-%m-%d"),
