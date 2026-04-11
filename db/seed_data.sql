@@ -1,96 +1,54 @@
 -- ============================================
--- PharmIQ Seed Data for Testing
+-- PharmIQ Seed Data (Aligned with New Schema)
 -- ============================================
 
--- ----------------------------
--- ROLES
--- ----------------------------
+-- 1. ROLES
 INSERT IGNORE INTO roles (role_id, role_name) VALUES
 (1, 'Admin'),
 (2, 'Biller'),
 (3, 'Accountant');
 
--- ----------------------------
--- DISTRIBUTOR 1: SV Pharma
--- ----------------------------
-INSERT IGNORE INTO distributors (distributor_id, name, mobile_no, email, address, gst_no, drug_license_no, logo_path, bank_name, bank_account_no, bank_ifsc, bank_branch, bank_upi, signatory_name, status)
-VALUES (1, 'SV PHARMACEUTICALS', '9876543210', 'svpharma@email.com',
-    '1st Floor, Trade Center, Station Road, Hubli - 580021, Karnataka',
-    '29AABCS1234F1Z5', 'KA-HB-20B1/21B1-21786',
-    NULL, 'HDFC BANK LTD', '99947977777777', 'HDFC0009254',
-    'Deshpande Nagar Branch, Hubli', 'svpharma@upi', 'S.V. Kumar', 'active');
+-- 2. DISTRIBUTORS
+INSERT IGNORE INTO distributors (distributor_id, name, mobile_no, email, address, gst_no, drug_license_no, bank_name, bank_account_no, bank_ifsc, bank_branch, bank_upi, signatory_name)
+VALUES 
+(1, 'SV PHARMACEUTICALS', '9876543210', 'svpharma@email.com', 'Hubli, Karnataka', '29AABCS1234F1Z5', 'KA-HB-20B1/21B1-21786', 'HDFC BANK', '99947977777777', 'HDFC0009254', 'Deshpande Nagar', 'svpharma@upi', 'S.V. Kumar'),
+(2, 'APEX DRUG HOUSE', '9112233445', 'apex@email.com', 'Bangalore, Karnataka', '29BBBCS5678F1ZA', 'KA-BN-20B2/21B2-55443', 'ICICI BANK', '888123456789', 'ICIC0001234', 'MG Road', 'apex@upi', 'A.P. Singh');
 
--- ----------------------------
--- USERS (password = 'admin123' for both)
--- ----------------------------
+-- 3. USERS (password = 'admin123')
 INSERT IGNORE INTO users (user_id, distributor_id, username, password, is_first_login, status)
 VALUES
 (1, 1, 'svadmin', 'admin123', 0, 'active'),
-(2, 1, 'svbiller', '+', 0, 'active');
+(2, 1, 'svbiller', 'admin123', 0, 'active'),
+(3, 2, 'apexadmin', 'admin123', 0, 'active');
 
--- ----------------------------
--- USER_ROLES
--- ----------------------------
 INSERT IGNORE INTO user_roles (user_id, role_id) VALUES
-(1, 1),
-(2, 2);
+(1, 1), (2, 2), (3, 1);
 
--- ----------------------------
--- CUSTOMERS
--- ----------------------------
-INSERT IGNORE INTO customers (license_no, distributor_id, shop_name, license_holder_name, mobile_no, gst_no, email, address_line1, address_line2, city, dist, state, pincode, country, status)
-VALUES
-('KA-BG3-283577', 1, 'ASHWINI SPECIALITY CLINIC', 'DR VIVEKAND KAMAT', '9902656680',
- '29AABCK9999E1ZP', 'ashwini@email.com',
- 'C/O Ashwini Speciality Clinic, Near Ram Mandir', 'Thane Road', 'Dharwad', 'Dharwad', 'Karnataka', '580001', 'India', 'active'),
-('KA-BG3-283578', 1, 'SAGAR MEDICALS', 'MR SAGAR PATIL', '9845123456',
- '29BBCDS7777F1Z3', 'sagar@email.com',
- 'Shop No 5, Main Road', NULL, 'Hubli', 'Dharwad', 'Karnataka', '580021', 'India', 'active');
-
--- ----------------------------
--- SUPPLIERS
--- ----------------------------
+-- 4. SUPPLIERS
 INSERT IGNORE INTO suppliers (supplier_id, distributor_id, name, mobile_no, gst_no)
 VALUES
 (1, 1, 'Sun Pharma Ltd', '9800011111', '27AABCS5678H1Z2'),
 (2, 1, 'Cipla Ltd', '9800022222', '27AABCC9012I1Z4');
 
--- ----------------------------
--- MEDICINES
--- ----------------------------
-INSERT IGNORE INTO medicines (medicine_id, name, unit, gst_percent) VALUES
-(1, 'GLIPY DM TAB', 'TAB', 12.00),
-(2, 'AMOXICILLIN 500MG CAP', 'CAP', 12.00),
-(3, 'PARACETAMOL 650MG TAB', 'TAB', 5.00),
-(4, 'CETIRIZINE 10MG TAB', 'TAB', 12.00),
-(5, 'PANTOPRAZOLE 40MG TAB', 'TAB', 12.00),
-(6, 'AZITHROMYCIN 500MG TAB', 'TAB', 12.00),
-(7, 'METFORMIN 500MG TAB', 'TAB', 5.00),
-(8, 'OMEPRAZOLE 20MG CAP', 'CAP', 12.00),
-(9, 'RANITIDINE 150MG TAB', 'TAB', 18.00),
-(10, 'DOLO 650 TAB', 'TAB', 5.00);
-
--- ----------------------------
--- BATCHES (for distributor 1 - SV Pharma)
--- ----------------------------
-INSERT IGNORE INTO batches (batch_id, medicine_id, supplier_id, distributor_id, batch_no, expiry_date, quantity, purchase_price, mrp)
+-- 5. SAMPLE MEDICINES
+-- (Run generate_seed.py for full 200+ medicines)
+INSERT IGNORE INTO medicines (medicine_id, name, manufacturer, category, unit, gst_percent, mrp, trp)
 VALUES
-(1, 1, 1, 1, 'FJ49650911', '2026-09-30', 500, 220.57, 308.80),
-(2, 2, 2, 1, 'AMX2024B01', '2027-03-31', 1000, 85.00, 120.50),
-(3, 3, 1, 1, 'PCM650A22', '2027-06-30', 2000, 15.00, 25.00),
-(4, 4, 2, 1, 'CET10B033', '2026-12-31', 800, 12.00, 22.00),
-(5, 5, 1, 1, 'PAN40C044', '2027-01-31', 600, 45.00, 68.50),
-(6, 6, 2, 1, 'AZI500D55', '2026-11-30', 300, 78.00, 115.00),
-(7, 7, 1, 1, 'MET500E66', '2027-08-31', 1500, 8.00, 15.00),
-(8, 8, 2, 1, 'OME20F077', '2026-10-31', 400, 32.00, 52.00),
+(1, 'GLIPY DM TAB', 'Sanofi', 'Diabetic', 'TAB', 12.00, 308.80, 220.57),
+(2, 'AMOXICILLIN 500MG CAP', 'Cipla', 'Antibiotics', 'CAP', 12.00, 120.50, 85.00),
+(3, 'PARACETAMOL 650MG TAB', 'Dolo', 'Painkillers', 'TAB', 5.00, 25.00, 15.00),
+(4, 'CETIRIZINE 10MG TAB', 'Sun Pharma', 'General', 'TAB', 12.00, 22.00, 12.00),
+(5, 'PANTOPRAZOLE 40MG TAB', 'Alkem', 'Gastro', 'TAB', 12.00, 68.50, 45.00);
 
--- New dummy batches for supplier 1, distributor 1
-(12, 9, 1, 1, 'RAN150K12', '2026-05-30', 1000, 18.50, 31.00),
-(13, 10, 2, 1, 'DOL650M34', '2026-07-31', 2000, 21.00, 36.00),
-(14, 2, 1, 1, 'AMX2024B02', '2025-12-31', 500, 85.00, 120.50),
-(15, 3, 1, 1, 'PCM650A23', '2026-11-30', 1200, 15.50, 25.50),
-(16, 4, 1, 1, 'CET10B034', '2027-02-28', 1500, 12.50, 22.50),
-(17, 5, 2, 1, 'PAN40C045', '2026-04-30', 2500, 46.00, 69.50),
-(18, 6, 2, 1, 'AZI500D56', '2027-01-31', 3500, 79.00, 116.00),
-(19, 7, 1, 1, 'MET500E67', '2026-10-31', 4000, 8.50, 16.00),
-(20, 8, 2, 1, 'OME20F078', '2027-05-31', 4500, 33.00, 53.00);
+-- 6. SAMPLE CUSTOMERS
+INSERT IGNORE INTO customers (license_no, distributor_id, shop_name, license_holder_name, mobile_no, gst_no, email, address_line1, city, dist, state, pincode)
+VALUES
+('KA-BG3-283577', 1, 'ASHWINI SPECIALITY CLINIC', 'DR VIVEKAND KAMAT', '9902656680', '29AABCK9999E1ZP', 'ashwini@email.com', 'Near Ram Mandir', 'Dharwad', 'Dharwad', 'Karnataka', '580001'),
+('KA-BG3-283578', 1, 'SAGAR MEDICALS', 'MR SAGAR PATIL', '9845123456', '29BBCDS7777F1Z3', 'sagar@email.com', 'Shop No 5, Main Road', 'Hubli', 'Dharwad', 'Karnataka', '580021');
+
+-- 7. INITIAL STOCK
+INSERT IGNORE INTO inventory_batches (medicine_id, supplier_id, distributor_id, batch_number, expiry_date, quantity, purchase_price)
+VALUES
+(1, 1, 1, 'FJ49650911', '2026-09-30', 500, 198.50),
+(2, 2, 1, 'AMX2024B01', '2027-03-31', 1000, 75.00),
+(3, 1, 1, 'PCM650A22', '2027-06-30', 2000, 12.00);
