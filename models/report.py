@@ -31,7 +31,7 @@ def get_sales_report(distributor_id, from_date=None, to_date=None, customer_name
         query += " AND i.payment_type = %s"
         params.append(status)
 
-    query += " ORDER BY i.invoice_date DESC, i.invoice_id DESC"
+    query += " ORDER BY i.invoice_date DESC, i.invoice_no DESC"
     return fetch_all(query, tuple(params))
 
 def get_detailed_invoice_report(distributor_id, from_date=None, to_date=None, customer_name=None, medicine_name=None):
@@ -41,9 +41,9 @@ def get_detailed_invoice_report(distributor_id, from_date=None, to_date=None, cu
     """
     query = """
         SELECT i.invoice_no, c.shop_name as customer_name, ii.product_name, ii.batch_no, ii.qty as quantity,
-               ii.rate, ii.amount as total, ii.gst_percent
+               ii.trp, ii.amount as total, ii.gst_percent
         FROM invoice_items ii
-        JOIN invoices i ON ii.invoice_id = i.invoice_id
+        JOIN invoices i ON ii.invoice_no = i.invoice_no
         LEFT JOIN customers c ON i.customer_license_no = c.license_no
         WHERE i.distributor_id = %s
     """
@@ -72,9 +72,9 @@ def get_inventory_report(distributor_id, medicine_name=None):
     """
     query = """
         SELECT m.name as medicine_name, b.batch_no, b.quantity as available_quantity,
-               b.expiry_date, b.purchase_price, b.mrp as selling_price
+               b.expiry_date, b.purchase_price as cost_price, m.trp, m.mrp
         FROM inventory_batches b
-        LEFT JOIN inventory_items m ON b.item_id = m.item_id
+        LEFT JOIN medicines m ON b.medicine_id = m.medicine_id
         WHERE b.distributor_id = %s
     """
     params = [distributor_id]
@@ -92,8 +92,8 @@ def get_inventory_report(distributor_id, medicine_name=None):
         # Fallback schema query:
         fallback_query = """
             SELECT m.name as medicine_name, b.batch_no, b.quantity as available_quantity,
-                   b.expiry_date, b.purchase_price, b.mrp as selling_price
-            FROM batches b
+                   b.expiry_date, b.purchase_price as cost_price, m.trp, m.mrp
+            FROM inventory_batches b
             JOIN medicines m ON b.medicine_id = m.medicine_id
             WHERE b.distributor_id = %s
         """
@@ -147,7 +147,7 @@ def get_returns_report(distributor_id, from_date=None, to_date=None, customer_na
         FROM returns r
         JOIN return_items ri ON r.return_id = ri.return_id
         JOIN invoice_items ii ON ri.invoice_item_id = ii.item_id
-        JOIN invoices i ON r.invoice_id = i.invoice_id
+        JOIN invoices i ON r.invoice_no = i.invoice_no
         JOIN customers c ON r.customer_license_no = c.license_no
         LEFT JOIN batches b ON ri.batch_id = b.batch_id
         WHERE i.distributor_id = %s

@@ -100,14 +100,14 @@ class InventoryView(ctk.CTkFrame):
         header.pack_propagate(False)
 
         cols = [
-            ("Medicine Name", 160), ("Batch Number", 100), ("Supplier", 110), 
-            ("Expiry", 85), ("Qty", 50), ("Purchase", 75), ("Status", 80), ("", 50)
+            ("Medicine Name", 160), ("Batch Number", 90), ("Supplier", 100), 
+            ("Expiry", 75), ("Qty", 45), ("TRP", 70), ("MRP", 70), ("Status", 80), ("", 50)
         ]
 
         for text, w in cols:
             ctk.CTkLabel(
                 header, text=text, width=w, font=ctk.CTkFont(size=11, weight="bold"),
-                text_color=TEXT_MUTED, anchor="w" if text not in ["Qty", "Purchase", "Status", ""] else "center"
+                text_color=TEXT_MUTED, anchor="w" if text not in ["Qty", "TRP", "MRP", "Status", ""] else "center"
             ).pack(side="left", padx=3)
 
         self.scroll = ctk.CTkScrollableFrame(self.left_col, fg_color="transparent")
@@ -170,9 +170,8 @@ class InventoryView(ctk.CTkFrame):
         add_field("med_drop", "Medicine", "combo", cmd=self._on_med_select)
         add_field("med_name", "Medicine Name", "entry", "Enter medicine name", cmd=lambda _: self._validate_form())
         add_field("supplier", "Supplier", "combo", cmd=lambda _: self._validate_form())
-        add_field("mrp", "MRP (₹)", "entry", "Maximum Retail Price", cmd=lambda _: self._validate_form())
-        add_field("purchase", "Purchase Price (₹)", "entry", "Cost per unit", cmd=lambda _: self._validate_form())
-        add_field("selling", "Selling Price (₹)", "entry", "Selling per unit", cmd=lambda _: self._validate_form())
+        add_field("mrp", "MRP (₹)", "entry", "Max Retail Price (Customer sells at)", cmd=lambda _: self._validate_form())
+        add_field("purchase", "TRP (₹)", "entry", "Trade Price (Rate for customer)", cmd=lambda _: self._validate_form())
         add_field("batch", "Batch Number", "entry", "3-20 chars", cmd=lambda _: self._validate_form())
         add_field("expiry", "Expiry Date", "entry", "YYYY-MM-DD", cmd=lambda _: self._validate_form())
         add_field("qty", "Quantity (Units)", "entry", "Enter positive number", cmd=lambda _: self._validate_form())
@@ -211,14 +210,14 @@ class InventoryView(ctk.CTkFrame):
             self.toggle_mode_btn.configure(text="Cancel / Switch back", fg_color=DANGER, hover_color="#B91C1C")
             self.save_btn.configure(text="Create & Add Stock")
             
-            show_keys = ["med_name", "supplier", "mrp", "purchase", "selling", "batch", "expiry", "qty"]
+            show_keys = ["med_name", "supplier", "mrp", "purchase", "batch", "expiry", "qty"]
             self.field_frames["med_drop"]["widget"].set("")
         else:
             self.form_title.configure(text="Add Inventory")
             self.toggle_mode_btn.configure(text="➕ Add New Medicine", fg_color=SUCCESS, hover_color=SUCCESS_HOV)
             self.save_btn.configure(text="Add Inventory")
 
-            show_keys = ["med_drop", "supplier", "batch", "expiry", "qty", "purchase", "selling"]
+            show_keys = ["med_drop", "supplier", "batch", "expiry", "qty", "purchase"]
             self.field_frames["med_name"]["widget"].delete(0, 'end')
             self.field_frames["mrp"]["widget"].delete(0, 'end')
 
@@ -234,22 +233,30 @@ class InventoryView(ctk.CTkFrame):
             self.field_frames["med_name"]["widget"].focus()
 
     def _on_med_select(self, val):
-        """Auto-fill selling price when regular medicine is selected."""
+        """Auto-fill pricing when medicine is selected."""
         med_name = val.strip()
         med_info = next((m for m in self.medicines if m["name"] == med_name), None)
         if med_info:
-            sp = med_info.get("selling_price", 0.0)
-            s_widget = self.field_frames["selling"]["widget"]
-            s_widget.delete(0, 'end')
-            if float(sp) > 0:
-                s_widget.insert(0, str(sp))
+            trp = med_info.get("trp", 0.0)
+            mrp = med_info.get("mrp", 0.0)
+            
+            t_widget = self.field_frames["purchase"]["widget"]
+            m_widget = self.field_frames["mrp"]["widget"]
+            
+            t_widget.delete(0, 'end')
+            if float(trp) > 0:
+                t_widget.insert(0, str(trp))
+                
+            m_widget.delete(0, 'end')
+            if float(mrp) > 0:
+                m_widget.insert(0, str(mrp))
         self._validate_form()
 
     def _load_data(self):
         try:
             self.inventory_data = get_inventory_list(self.user["distributor_id"])
             
-            self.medicines = fetch_all("SELECT medicine_id, name, selling_price, mrp FROM medicines ORDER BY name")
+            self.medicines = fetch_all("SELECT medicine_id, name, trp, mrp FROM medicines ORDER BY name")
             self.suppliers = fetch_all("SELECT supplier_id, name FROM suppliers WHERE distributor_id = %s ORDER BY name", (self.user["distributor_id"],))
 
             med_names = [m["name"] for m in self.medicines]
@@ -271,21 +278,27 @@ class InventoryView(ctk.CTkFrame):
         w_exp = self.field_frames["expiry"]["widget"].get().strip()
         w_qty = self.field_frames["qty"]["widget"].get().strip()
         w_pur = self.field_frames["purchase"]["widget"].get().strip()
-        w_sel = self.field_frames["selling"]["widget"].get().strip()
         w_mrp = self.field_frames["mrp"]["widget"].get().strip()
 
         if self.is_new_medicine_mode:
             if not w_med_n: errors.append("Medicine Name required")
             try:
                 mrp_f = float(w_mrp)
-                sel_f = float(w_sel)
-                if mrp_f < sel_f: errors.append("MRP must be >= Selling")
                 if mrp_f <= 0: errors.append("MRP must be > 0")
             except ValueError:
                 if not w_mrp: errors.append("MRP required")
-            if not w_sel: errors.append("Selling price required")
+            if not w_pur: errors.append("TRP required")
         else:
             if not w_med_d or w_med_d == "Loading...": errors.append("Select Medicine")
+
+        # MRP must always be >= TRP
+        try:
+            mrp_val = float(w_mrp) if w_mrp else 0
+            trp_val = float(w_pur) if w_pur else 0
+            if mrp_val > 0 and trp_val > 0 and trp_val > mrp_val:
+                errors.append("MRP must be >= TRP")
+        except ValueError:
+            pass
 
         if not w_sup or w_sup == "Loading...": errors.append("Select Supplier")
         
@@ -307,23 +320,24 @@ class InventoryView(ctk.CTkFrame):
 
         try:
             if float(w_pur) <= 0: 
-                errors.append("Purchase > 0")
+                errors.append("TRP > 0")
                 self.field_frames["purchase"]["widget"].configure(border_color=DANGER)
             else:
                 self.field_frames["purchase"]["widget"].configure(border_color=SUCCESS)
         except ValueError: 
-            errors.append("Purchase must be number")
+            errors.append("TRP must be number")
             self.field_frames["purchase"]["widget"].configure(border_color=DANGER)
 
         try:
-            if float(w_sel) <= 0:
-                errors.append("Selling > 0")
-                self.field_frames["selling"]["widget"].configure(border_color=DANGER)
+            val_trp = float(w_pur)
+            if val_trp <= 0:
+                errors.append("TRP > 0")
+                self.field_frames["purchase"]["widget"].configure(border_color=DANGER)
             else:
-                self.field_frames["selling"]["widget"].configure(border_color=SUCCESS)
+                self.field_frames["purchase"]["widget"].configure(border_color=SUCCESS)
         except ValueError:
-            errors.append("Selling must be number")
-            self.field_frames["selling"]["widget"].configure(border_color=DANGER)
+            errors.append("TRP must be number")
+            self.field_frames["purchase"]["widget"].configure(border_color=DANGER)
 
         try:
             exp_d = datetime.strptime(w_exp, "%Y-%m-%d").date()
@@ -377,8 +391,9 @@ class InventoryView(ctk.CTkFrame):
                 (str(row.get("batch_number", "")), 100, "w"),
                 (str(row.get("supplier_name", "") or "N/A")[:18], 110, "w"),
                 (exp.strftime("%d/%m/%y") if exp else "N/A", 85, "w"),
-                (str(qty), 50, "center"),
-                (f"₹{float(row.get('purchase_price', 0)):.2f}", 75, "center"),
+                (str(qty), 45, "center"),
+                (f"₹{float(row.get('purchase_price', 0)):.2f}", 70, "center"),
+                (f"₹{float(row.get('mrp', 0)):.2f}", 70, "center"),
             ]
 
             for val, w, anchor in cols:
@@ -417,8 +432,9 @@ class InventoryView(ctk.CTkFrame):
         batch_no = self.field_frames["batch"]["widget"].get().strip().upper()
         exp_date = self.field_frames["expiry"]["widget"].get().strip()
         qty = int(self.field_frames["qty"]["widget"].get().strip())
-        purchase = float(self.field_frames["purchase"]["widget"].get().strip())
-        selling = float(self.field_frames["selling"]["widget"].get().strip())
+        trp = float(self.field_frames["purchase"]["widget"].get().strip())
+        mrp_input = self.field_frames["mrp"]["widget"].get().strip()
+        mrp = float(mrp_input) if mrp_input else 0
 
         sup_id = next((s["supplier_id"] for s in self.suppliers if s["name"] == sup_name), None)
 
@@ -430,11 +446,11 @@ class InventoryView(ctk.CTkFrame):
             if not messagebox.askyesno("Confirm", msg): return
 
             try:
-                create_medicine(med_name, manufacturer="N/A", category="General", description="", mrp=mrp, selling_price=selling)
-                self.medicines = fetch_all("SELECT medicine_id, name, selling_price, mrp FROM medicines ORDER BY name")
+                create_medicine(med_name, manufacturer="N/A", category="General", description="", mrp=mrp, trp=trp)
+                self.medicines = fetch_all("SELECT medicine_id, name, trp, mrp FROM medicines ORDER BY name")
                 med_id = next((m["medicine_id"] for m in self.medicines if m["name"] == med_name), None)
                 
-                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, purchase)
+                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, trp)
                 
                 messagebox.showinfo("Success", "Medicine and inventory added successfully")
                 self._load_data()
@@ -458,8 +474,8 @@ class InventoryView(ctk.CTkFrame):
             if not messagebox.askyesno("Confirm", "Are you sure you want to add this inventory?"): return
 
             try:
-                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, purchase)
-                update_medicine_pricing(med_id, selling, mrp=selling, discount_percent=0) # Update general pricing from batched entry just in case
+                add_new_stock(self.user["distributor_id"], med_id, sup_id, batch_no, exp_date, qty, trp)
+                update_medicine_pricing(med_id, trp, mrp=mrp, discount_percent=0) # Update general pricing from batched entry
                 messagebox.showinfo("Success", "Inventory added successfully")
                 self._load_data()
                 self._clear_form()

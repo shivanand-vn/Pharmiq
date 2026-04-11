@@ -313,7 +313,7 @@ class ReportsView(ctk.CTkFrame):
                 
             elif rtype == "Inventory / Stock Report":
                 data = get_inventory_report(self.distributor_id, medicine_name=med)
-                self.current_columns = ["Medicine Name", "Batch Number", "Available Qty", "Expiry Date", "Purchase Price", "Selling Price"]
+                self.current_columns = ["Medicine Name", "Batch Number", "Available Qty", "Expiry Date", "TRP", "MRP"]
                 
             elif rtype == "Expiry Report":
                 try:
@@ -384,7 +384,7 @@ class ReportsView(ctk.CTkFrame):
                     row.get('product_name', ''),
                     row.get('batch_no', ''),
                     row.get('quantity', 0),
-                    f"₹{row.get('rate', 0):.2f}",
+                    f"₹{row.get('trp', 0):.2f}",
                     f"₹{row.get('total', 0):.2f}",
                     f"{row.get('gst_percent', 0)}%"
                 ]
@@ -397,8 +397,8 @@ class ReportsView(ctk.CTkFrame):
                     row.get('batch_no', ''),
                     qty,
                     str(row.get('expiry_date', '')),
-                    f"₹{row.get('purchase_price', 0):.2f}",
-                    f"₹{row.get('selling_price', 0):.2f}"
+                    f"₹{row.get('trp', 0):.2f}",
+                    f"₹{row.get('mrp', 0):.2f}"
                 ]
             elif rtype == "Expiry Report":
                 row_tag = "danger" # All expiries are red

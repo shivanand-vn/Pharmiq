@@ -22,7 +22,7 @@ def search_products(distributor_id, query=""):
             b.quantity AS available_qty,
             b.purchase_price,
             m.mrp,
-            m.selling_price,
+            m.trp,
             m.discount_percent
         FROM inventory_batches b
         JOIN medicines m ON m.medicine_id = b.medicine_id
@@ -40,7 +40,7 @@ def check_medicine_exists(name):
     """Check if a medicine already exists globally by name."""
     return fetch_one("SELECT medicine_id FROM medicines WHERE name = %s", (name,))
 
-def create_medicine(name, manufacturer, category, description, unit="Unit", gst_percent=12.00, mrp=0.00, selling_price=0.00, discount_percent=0.00):
+def create_medicine(name, manufacturer, category, description, unit="Unit", gst_percent=12.00, mrp=0.00, trp=0.00, discount_percent=0.00):
     """Insert a new medicine into Master Data."""
     # Ensure Medicine Name is unique
     if check_medicine_exists(name):
@@ -49,10 +49,10 @@ def create_medicine(name, manufacturer, category, description, unit="Unit", gst_
     return execute_query(
         """
         INSERT INTO medicines 
-        (name, manufacturer, category, description, unit, gst_percent, mrp, selling_price, discount_percent)
+        (name, manufacturer, category, description, unit, gst_percent, mrp, trp, discount_percent)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
-        (name, manufacturer, category, description, unit, gst_percent, mrp, selling_price, discount_percent)
+        (name, manufacturer, category, description, unit, gst_percent, mrp, trp, discount_percent)
     )
 
 def get_batch_by_id(batch_id):
@@ -70,7 +70,7 @@ def get_batch_by_id(batch_id):
             b.quantity AS available_qty,
             b.purchase_price,
             m.mrp,
-            m.selling_price,
+            m.trp,
             m.discount_percent
         FROM inventory_batches b
         JOIN medicines m ON m.medicine_id = b.medicine_id
@@ -95,7 +95,7 @@ def get_all_products_for_distributor(distributor_id):
             b.quantity AS available_qty,
             b.purchase_price,
             m.mrp,
-            m.selling_price,
+            m.trp,
             m.discount_percent
         FROM inventory_batches b
         JOIN medicines m ON m.medicine_id = b.medicine_id
@@ -122,7 +122,7 @@ def get_inventory_list(distributor_id, search_q=""):
             b.quantity,
             b.purchase_price,
             m.mrp,
-            m.selling_price,
+            m.trp,
             m.discount_percent
         FROM inventory_batches b
         JOIN medicines m ON m.medicine_id = b.medicine_id
@@ -182,18 +182,18 @@ def update_existing_stock_qty(batch_id, additional_qty, purchase_price=None):
     )
 
 
-def update_medicine_pricing(medicine_id, selling_price, mrp, discount_percent):
+def update_medicine_pricing(medicine_id, trp, mrp, discount_percent):
     """Update pricing on the medicine level."""
-    sp = float(selling_price)
-    mp = float(mrp)
-    if sp <= 0:
-        raise ValueError("Selling Price must be greater than 0.")
-    if mp < sp:
-        raise ValueError("MRP cannot be less than the Selling Price.")
+    t_val = float(trp)
+    m_val = float(mrp)
+    if t_val <= 0:
+        raise ValueError("TRP must be greater than 0.")
+    if m_val < t_val:
+        raise ValueError("MRP cannot be less than the TRP.")
 
     return execute_query(
-        "UPDATE medicines SET selling_price = %s, mrp = %s, discount_percent = %s WHERE medicine_id = %s",
-        (sp, mp, discount_percent, medicine_id)
+        "UPDATE medicines SET trp = %s, mrp = %s, discount_percent = %s WHERE medicine_id = %s",
+        (t_val, m_val, discount_percent, medicine_id)
     )
 
 

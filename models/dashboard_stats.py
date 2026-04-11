@@ -55,7 +55,7 @@ def get_product_distribution(distributor_id):
     query = """
         SELECT m.unit AS category, SUM(ii.qty) AS total_qty
         FROM invoice_items ii
-        JOIN invoices i ON ii.invoice_id = i.invoice_id
+        JOIN invoices i ON ii.invoice_no = i.invoice_no
         JOIN inventory_batches b ON ii.batch_id = b.batch_id
         JOIN medicines m ON b.medicine_id = m.medicine_id
         WHERE i.distributor_id = %s
