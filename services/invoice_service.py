@@ -9,11 +9,11 @@ from models.invoice import get_next_invoice_no, create_invoice, get_invoice
 from utils.num_to_words import number_to_words
 
 
-def calculate_item_amount(qty, rate, discount_percent):
+def calculate_item_amount(qty, trp, discount_percent):
     """Calculate the amount for a single line item (before GST)."""
     try:
         q = Decimal(str(qty))
-        r = Decimal(str(rate))
+        r = Decimal(str(trp))
         d = Decimal(str(discount_percent))
         base = q * r
         discount = (base * d / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
@@ -24,7 +24,7 @@ def calculate_item_amount(qty, rate, discount_percent):
 
 def calculate_invoice_totals(items):
     """
-    Given a list of item dicts (each with qty, rate, discount_percent, gst_percent, amount),
+    Given a list of item dicts (each with qty, trp, discount_percent, gst_percent, amount),
     compute the invoice-level totals.
 
     Returns dict with: subtotal, discount_amount, sgst, cgst, total_gst, grand_total
@@ -36,7 +36,7 @@ def calculate_invoice_totals(items):
 
         for item in items:
             q = Decimal(str(item["qty"]))
-            r = Decimal(str(item["rate"]))
+            r = Decimal(str(item["trp"]))
             d = Decimal(str(item.get("discount_percent", 0)))
             g = Decimal(str(item.get("gst_percent", 0)))
 
@@ -100,20 +100,19 @@ def build_gst_summary(items):
 
 
 def create_full_invoice(distributor_id, user_id, customer_license_no,
-                         items, order_no="", lr_no="", transport="",
-                         payment_type="Credit", invoice_date=None):
+                         items, payment_type="Credit", invoice_date=None):
     """
     High-level function: compute totals, generate invoice number,
     create invoice + items in DB. Returns the created invoice dict.
 
     items: list of dicts with keys:
-        batch_id, product_name, batch_no, expiry_date, qty, mrp, rate,
+        batch_id, product_name, batch_no, expiry_date, qty, mrp, trp,
         discount_percent, gst_percent
     """
     # Calculate per-item amounts
     for item in items:
         item["amount"] = calculate_item_amount(
-            item["qty"], item["rate"], item.get("discount_percent", 0)
+            item["qty"], item["trp"], item.get("discount_percent", 0)
         )
 
     # Calculate totals
@@ -135,9 +134,6 @@ def create_full_invoice(distributor_id, user_id, customer_license_no,
         "user_id": user_id,
         "customer_license_no": customer_license_no,
         "invoice_date": invoice_date,
-        "order_no": order_no,
-        "lr_no": lr_no,
-        "transport": transport,
         "payment_type": payment_type,
         "subtotal": totals["subtotal"],
         "discount_amount": totals["discount_amount"],
@@ -149,7 +145,7 @@ def create_full_invoice(distributor_id, user_id, customer_license_no,
     }
 
     # Create in DB
-    invoice_id = create_invoice(invoice_data, items)
+    created_invoice_no = create_invoice(invoice_data, items)
 
     # Return full invoice
-    return get_invoice(invoice_id)
+    return get_invoice(created_invoice_no)

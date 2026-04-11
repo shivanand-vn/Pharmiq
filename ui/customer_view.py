@@ -24,6 +24,8 @@ DANGER = "#EF4444"
 WARN_BG = "#FEF3C7"
 VALID_BORDER = "#10B981"
 INVALID_BORDER = "#EF4444"
+ROW_BG_1 = "#FFFFFF"
+ROW_BG_2 = "#F9FAFB"
 
 # ── Indian States / UTs ──
 INDIAN_STATES = [
@@ -613,43 +615,41 @@ class CustomerView(ctk.CTkFrame):
                          font=ctk.CTkFont(size=13), text_color=TEXT_MUTED).pack(pady=40)
             return
 
-        # Main rows container anchored to the top (North)
-        rows_list = ctk.CTkFrame(self.scroll, fg_color="transparent")
-        rows_list.pack(fill="x", anchor="n")
-
+        # Grid Layout for Row Placement (Fixed spacing issue)
+        self.scroll.grid_columnconfigure(0, weight=1)
+        
         cols = [("license_no", 140), ("gst_no", 150), ("shop_name", 220), ("mobile_no", 110), ("city", 100)]
 
-        for row in customers:
-            # Consistent, compact row height (34px)
-            frame = ctk.CTkFrame(rows_list, fg_color="transparent", height=34)
-            frame.pack(fill="x", pady=0)
-            frame.pack_propagate(False)
+        for idx, row in enumerate(customers):
+            bg = ROW_BG_1 if idx % 2 == 0 else ROW_BG_2
             
-            # Use grid for data columns within the fixed-height frame
-            frame.rowconfigure(0, weight=1)
+            # Excel-like row height (26px)
+            frame = ctk.CTkFrame(self.scroll, fg_color=bg, height=26, corner_radius=0)
+            frame.grid(row=idx, column=0, sticky="ew", pady=0)
             
-            # Thinnest separator line
-            ctk.CTkFrame(rows_list, fg_color=BORDER_CLR, height=1).pack(fill="x", padx=5)
-
+            # Data Columns
             for i, (key, w) in enumerate(cols):
                 frame.columnconfigure(i, weight=1 if key == "shop_name" else 0)
-                val = str(row.get(key) or "N/A")[:25]
+                val = str(row.get(key) or "N/A")[:30]
                 ctk.CTkLabel(
-                    frame, text=val, width=w, font=ctk.CTkFont(size=12),
-                    text_color=TEXT_DARK, anchor="w"
+                    frame, text=val, width=w, height=26, font=ctk.CTkFont(size=11),
+                    text_color="#000000", anchor="w"
                 ).grid(row=0, column=i, sticky="nsew", padx=0)
 
             # Actions
-            action_frame = ctk.CTkFrame(frame, width=140, fg_color="transparent")
-            action_frame.grid(row=0, column=5, sticky="nsew", padx=5, pady=3)
+            action_frame = ctk.CTkFrame(frame, width=140, height=26, fg_color=bg)
+            action_frame.grid(row=0, column=5, sticky="nsew", padx=0, pady=0)
             action_frame.pack_propagate(False)
 
             ctk.CTkButton(
-                action_frame, text="Edit", width=60, height=28,
-                font=ctk.CTkFont(size=11, weight="bold"), corner_radius=6,
+                action_frame, text="Edit", width=55, height=18,
+                font=ctk.CTkFont(size=10, weight="bold"), corner_radius=4,
                 fg_color="#DBEAFE", hover_color="#BFDBFE", text_color="#1E3A8A",
                 command=lambda r=row: self._start_edit(r)
-            ).pack(side="left", padx=(0, 5))
+            ).pack(side="left", padx=(0, 5), pady=4)
+
+        # Force all rows to the top using a spacer weight
+        self.scroll.grid_rowconfigure(len(customers), weight=1)
 
 
     # ──────────────────────────────────────────────

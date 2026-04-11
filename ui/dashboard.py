@@ -404,7 +404,7 @@ class Dashboard(ctk.CTkFrame):
         header = ctk.CTkFrame(self.invoices_scroll, fg_color="#F3F4F6", corner_radius=8, height=40)
         header.pack(fill="x", pady=(0, 8))
         header.pack_propagate(False)
-        cols = [("Invoice ID", 120), ("Customer", 200), ("Date", 120), ("Amount", 120), ("Status", 100)]
+        cols = [("Invoice No", 120), ("Customer", 200), ("Date", 120), ("Amount", 120), ("Status", 100)]
         for text, w in cols:
             ctk.CTkLabel(
                 header, text=text, width=w, font=ctk.CTkFont(size=13, weight="bold"),
