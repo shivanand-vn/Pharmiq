@@ -135,6 +135,7 @@ class InvoiceForm(ctk.CTkFrame):
         self.inv_no_entry = ctk.CTkEntry(inv_col, height=34, font=ctk.CTkFont(size=13, weight="bold"), fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
         self.inv_no_entry.pack(fill="x", pady=(4, 0))
         self.inv_no_entry.insert(0, get_next_invoice_no(self.user["distributor_id"]))
+        self.inv_no_entry.configure(state="readonly")
 
         # Payment Method
         ctk.CTkLabel(fields, text="Payment Method", font=ctk.CTkFont(size=11), text_color=TEXT_MUTED).pack(anchor="w", pady=(4, 4))
@@ -167,7 +168,7 @@ class InvoiceForm(ctk.CTkFrame):
         search_row = ctk.CTkFrame(frame, fg_color="transparent")
         search_row.pack(fill="x", padx=10, pady=(0, 8))
 
-        self.cust_search = ctk.CTkEntry(search_row, height=34, font=ctk.CTkFont(size=12), placeholder_text="🔍 Search customers (Name or License No)...", fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
+        self.cust_search = ctk.CTkEntry(search_row, height=34, font=ctk.CTkFont(size=12), placeholder_text="🔍 Search customers (Name, License, or Mobile)...", fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK, corner_radius=6)
         self.cust_search.pack(fill="x")
         self.cust_search.bind("<KeyRelease>", self._on_customer_search)
 
@@ -637,15 +638,15 @@ class InvoiceForm(ctk.CTkFrame):
         for row in self.product_rows:
             if not row.get("batch_id"): continue
             try:
-                qty, rate, disc = int(row["qty_entry"].get() or "0"), float(row["rate_entry"].get() or "0"), float(row["disc_entry"].get() or "0")
-                if qty <= 0 or rate <= 0: continue
+                qty, trp, disc = int(row["qty_entry"].get() or "0"), float(row["trp_entry"].get() or "0"), float(row["disc_entry"].get() or "0")
+                if qty <= 0 or trp <= 0: continue
                 prod = row.get("product_data", {})
                 exp = prod.get("expiry_date", "")
                 if hasattr(exp, "strftime"): exp = exp.strftime("%Y-%m-%d")
                 items.append({
                     "batch_id": row["batch_id"], "product_name": prod.get("product_name", ""),
                     "batch_no": prod.get("batch_number", ""), "expiry_date": str(exp),
-                    "qty": qty, "mrp": float(prod.get("mrp", 0)), "rate": rate,
+                    "qty": qty, "mrp": float(prod.get("mrp", 0)), "trp": trp,
                     "discount_percent": disc, "gst_percent": float(prod.get("gst_percent", 12)),
                 })
             except (ValueError, KeyError): continue
@@ -664,13 +665,18 @@ class InvoiceForm(ctk.CTkFrame):
             customer = get_customer_by_license(self.selected_customer["license_no"])
             distributor = get_distributor_by_id(self.user["distributor_id"])
             pdf_path = generate_invoice_pdf(invoice, distributor, customer)
-            if messagebox.askyesno("Invoice Created ✅", f"Invoice {invoice['invoice_no']} created successfully!\n\nGrand Total: ₹{float(invoice['grand_total']):,.2f}\nPDF saved at: {pdf_path}\n\nOpen PDF now?"):
-                open_pdf(pdf_path)
+
+            # Show integrated preview instead of browser-based open_pdf
+            from ui.invoice_preview import InvoicePreview
+            InvoicePreview(self.app, invoice, pdf_path)
+
             self._reset_form()
 
             # Update the Invoice No to the next available sequence
+            self.inv_no_entry.configure(state="normal")
             self.inv_no_entry.delete(0, "end")
             self.inv_no_entry.insert(0, get_next_invoice_no(self.user["distributor_id"]))
+            self.inv_no_entry.configure(state="readonly")
 
         except Exception as e: messagebox.showerror("Error", f"Failed to create invoice:\n{e}")
 

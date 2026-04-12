@@ -192,7 +192,7 @@ class ReturnsView(ctk.CTkFrame):
                 if row['expired']: continue
                 qty = int(row['qty_var'].get() or 0)
                 if 0 < qty <= row['max']:
-                    total += qty * float(row['item']['rate'])
+                    total += qty * float(row['item']['trp'])
             except ValueError: pass
         self.refund_lbl.configure(text=f"Total Refund: ₹ {total:,.2f}")
 
@@ -213,7 +213,7 @@ class ReturnsView(ctk.CTkFrame):
                     return
                 
                 if qty > 0:
-                    refund = qty * float(row['item']['rate'])
+                    refund = qty * float(row['item']['trp'])
                     final_items.append({
                         "invoice_item_id": row['item']['item_id'],
                         "batch_id": row['item']['batch_id'],

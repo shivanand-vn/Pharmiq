@@ -30,7 +30,7 @@ def get_returnable_invoice(invoice_no, distributor_id):
         """
         SELECT 
             item_id, product_name, batch_no, expiry_date, batch_id,
-            qty as sold_qty, returned_quantity, rate, gst_percent
+            qty as sold_qty, returned_quantity, trp, gst_percent
         FROM invoice_items
         WHERE invoice_no = %s
         """,
