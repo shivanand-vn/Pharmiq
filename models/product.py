@@ -29,7 +29,7 @@ def search_products(distributor_id, query=""):
         WHERE b.distributor_id = %s
           AND b.quantity > 0
           AND (m.name LIKE %s OR b.batch_number LIKE %s)
-        ORDER BY m.name, b.expiry_date
+        ORDER BY b.expiry_date ASC, m.name ASC
         LIMIT 30
         """,
         (distributor_id, like_q, like_q),

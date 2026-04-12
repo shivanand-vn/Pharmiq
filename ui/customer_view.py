@@ -103,7 +103,7 @@ class CustomerView(ctk.CTkFrame):
 
         self.search_var = ctk.StringVar()
         search_entry = ctk.CTkEntry(
-            toolbar, textvariable=self.search_var, placeholder_text="🔍 Search customers...",
+            toolbar, textvariable=self.search_var, placeholder_text="🔍 Search customers (Name, License, or Mobile)...",
             width=300, height=40, font=ctk.CTkFont(size=13), corner_radius=8,
             fg_color=ENTRY_BG, border_color=BORDER_CLR, text_color=TEXT_DARK
         )
