@@ -100,8 +100,8 @@ class InventoryView(ctk.CTkFrame):
         header.pack_propagate(False)
 
         cols = [
-            ("Medicine Name", 160), ("Batch Number", 90), ("Supplier", 100), 
-            ("Expiry", 75), ("Qty", 45), ("TRP", 70), ("MRP", 70), ("Status", 80), ("", 50)
+            ("Medicine Name", 160), ("Batch Number", 100), ("Supplier", 120), 
+            ("Expiry", 85), ("Qty", 50), ("TRP", 80), ("MRP", 80), ("Status", 90), ("", 110)
         ]
 
         for text, w in cols:
@@ -389,11 +389,11 @@ class InventoryView(ctk.CTkFrame):
             cols = [
                 (str(row.get("product_name", ""))[:20], 160, "w"),
                 (str(row.get("batch_number", "")), 100, "w"),
-                (str(row.get("supplier_name", "") or "N/A")[:18], 110, "w"),
+                (str(row.get("supplier_name", "") or "N/A")[:18], 120, "w"),
                 (exp.strftime("%d/%m/%y") if exp else "N/A", 85, "w"),
-                (str(qty), 45, "center"),
-                (f"₹{float(row.get('purchase_price', 0)):.2f}", 70, "center"),
-                (f"₹{float(row.get('mrp', 0)):.2f}", 70, "center"),
+                (str(qty), 50, "center"),
+                (f"₹{float(row.get('purchase_price', 0)):.2f}", 80, "center"),
+                (f"₹{float(row.get('mrp', 0)):.2f}", 80, "center"),
             ]
 
             for val, w, anchor in cols:
@@ -405,13 +405,13 @@ class InventoryView(ctk.CTkFrame):
             elif is_near_expiry: status = "NEAR EXP"; s_bg = "#FFF7ED"; s_fg = "#9A3412"
             elif is_low_stock: status = "LOW STOCK"; s_bg = "#FEFCE8"; s_fg = "#854D0E"
 
-            tag = ctk.CTkFrame(f, fg_color=s_bg, corner_radius=6, height=22, width=80)
+            tag = ctk.CTkFrame(f, fg_color=s_bg, corner_radius=6, height=22, width=90)
             tag.pack_propagate(False)
             tag.pack(side="left", padx=3, pady=10)
             ctk.CTkLabel(tag, text=status, text_color=s_fg, font=ctk.CTkFont(size=9, weight="bold")).pack(expand=True)
 
             ctk.CTkButton(
-                f, text="➕ Add Inventory", width=90, height=26, font=ctk.CTkFont(size=11, weight="bold"),
+                f, text="➕ Add Inventory", width=100, height=26, font=ctk.CTkFont(size=11, weight="bold"),
                 fg_color="#E0E7FF", hover_color="#C7D2FE", text_color="#3730A3",
                 command=lambda r=row: self._prep_add_inventory(r)
             ).pack(side="left", padx=5)
