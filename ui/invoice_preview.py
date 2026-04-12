@@ -1,99 +1,148 @@
-"""
-Invoice Preview — Dialog for viewing generated invoice PDF.
-"""
-
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import os
+import shutil
+import fitz  # PyMuPDF
+from PIL import Image, ImageTk
 
-from services.pdf_generator import open_pdf, print_pdf
+from services.pdf_generator import print_pdf
 
 
 class InvoicePreview(ctk.CTkToplevel):
-    """Preview dialog showing invoice PDF path with Open/Print buttons."""
+    """Integrated PDF viewer for invoice preview inside the application."""
 
     def __init__(self, master, invoice, pdf_path):
         super().__init__(master)
         self.invoice = invoice
         self.pdf_path = pdf_path
+        self.pages = []
+        self.tk_images = []
 
         self.title(f"Invoice {invoice.get('invoice_no', '')} — Preview")
-        self.geometry("500x350")
-        self.resizable(False, False)
-        self.configure(fg_color="#F8F9FA")
+        
+        # Larger size for professional preview
+        self.geometry("900x850")
+        self.minsize(600, 500)
+        self.configure(fg_color="#F1F5F9")
 
         # Center on screen
         self.update_idletasks()
-        x = (self.winfo_screenwidth() - 500) // 2
-        y = (self.winfo_screenheight() - 350) // 2
+        x = (self.winfo_screenwidth() - 900) // 2
+        y = (self.winfo_screenheight() - 850) // 2
         self.geometry(f"+{x}+{y}")
 
         self._build_ui()
+        self.after(100, self._load_pdf)
+
+        # Make it modal-like
+        self.grab_set()
+        self.focus_set()
 
     def _build_ui(self):
-        # Header
-        header = ctk.CTkFrame(self, fg_color="#212529", corner_radius=0, height=50)
-        header.pack(fill="x")
-        header.pack_propagate(False)
+        # ── Top Toolbar ──
+        toolbar = ctk.CTkFrame(self, fg_color="#1E293B", corner_radius=0, height=64)
+        toolbar.pack(fill="x")
+        toolbar.pack_propagate(False)
 
-        ctk.CTkLabel(
-            header, text="🧾 Invoice Generated Successfully!",
-            font=ctk.CTkFont(size=16, weight="bold"), text_color="#4361EE",
-        ).pack(pady=12)
+        title_lbl = ctk.CTkLabel(
+            toolbar, text=f"📄  Invoice PREVIEW: {self.invoice.get('invoice_no', '')}",
+            font=ctk.CTkFont(size=14, weight="bold"), text_color="#FFFFFF"
+        )
+        title_lbl.pack(side="left", padx=25)
 
-        # Info card
-        card = ctk.CTkFrame(self, fg_color="#212529", corner_radius=12,
-                             border_width=1, border_color="#DEE2E6")
-        card.pack(padx=20, pady=15, fill="both", expand=True)
-
-        details = [
-            ("Invoice No:", self.invoice.get("invoice_no", "")),
-            ("Date:", str(self.invoice.get("invoice_date", ""))),
-            ("Grand Total:", f"₹ {float(self.invoice.get('grand_total', 0)):,.2f}"),
-            ("Payment:", self.invoice.get("payment_type", "")),
-            ("PDF File:", os.path.basename(self.pdf_path) if self.pdf_path else "N/A"),
-        ]
-
-        for label, value in details:
-            row = ctk.CTkFrame(card, fg_color="transparent")
-            row.pack(fill="x", padx=15, pady=3)
-            ctk.CTkLabel(row, text=label, font=ctk.CTkFont(size=11),
-                          text_color="#868E96", width=100, anchor="e").pack(side="left")
-            ctk.CTkLabel(row, text=value, font=ctk.CTkFont(size=11, weight="bold"),
-                          text_color="#212529", anchor="w").pack(side="left", padx=10)
-
-        # Buttons
-        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=20, pady=(0, 15))
+        # Action Buttons
+        btn_frame = ctk.CTkFrame(toolbar, fg_color="transparent")
+        btn_frame.pack(side="right", padx=15)
 
         ctk.CTkButton(
-            btn_frame, text="📂  Open PDF", height=40, width=140,
-            font=ctk.CTkFont(size=13, weight="bold"), corner_radius=10,
-            fg_color="#4361EE", hover_color="#3A0CA3", text_color="#F8F9FA",
-            command=self._open,
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            btn_frame, text="🖨️  Print", height=40, width=100,
-            font=ctk.CTkFont(size=13, weight="bold"), corner_radius=10,
-            fg_color="#7209B7", hover_color="#560BAD",
+            btn_frame, text="🖨️  Print", width=100, height=34,
+            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=6,
+            fg_color="#3B82F6", hover_color="#2563EB", text_color="#FFFFFF",
             command=self._print,
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
-            btn_frame, text="Close", height=40, width=80,
-            font=ctk.CTkFont(size=12), corner_radius=10,
-            fg_color="#E9ECEF", hover_color="#CED4DA",
-            command=self.destroy,
-        ).pack(side="right", padx=5)
+            btn_frame, text="📥  Download", width=110, height=34,
+            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=6,
+            fg_color="#10B981", hover_color="#059669", text_color="#FFFFFF",
+            command=self._download,
+        ).pack(side="left", padx=5)
 
-    def _open(self):
+        ctk.CTkButton(
+            btn_frame, text="Close", width=80, height=34,
+            font=ctk.CTkFont(size=12), corner_radius=6,
+            fg_color="#475569", hover_color="#334155", text_color="#FFFFFF",
+            command=self.destroy,
+        ).pack(side="left", padx=5)
+
+        # ── PDF Content Area ──
+        self.preview_scroll = ctk.CTkScrollableFrame(self, fg_color="#F8FAFC", corner_radius=0)
+        self.preview_scroll.pack(fill="both", expand=True, padx=2, pady=2)
+        
+        # Inner container to center the pages
+        self.pages_container = ctk.CTkFrame(self.preview_scroll, fg_color="transparent")
+        self.pages_container.pack(pady=20, expand=True)
+
+        self.status_lbl = ctk.CTkLabel(
+            self.pages_container, text="Loading Invoice...",
+            font=ctk.CTkFont(size=13), text_color="#64748B"
+        )
+        self.status_lbl.pack(pady=100)
+
+    def _load_pdf(self):
+        """Render PDF pages using fitz and display them."""
+        if not os.path.exists(self.pdf_path):
+            self.status_lbl.configure(text="Error: PDF file not found.", text_color="#EF4444")
+            return
+
         try:
-            open_pdf(self.pdf_path)
+            doc = fitz.open(self.pdf_path)
+            self.status_lbl.destroy() # Remove loading label
+
+            for i in range(len(doc)):
+                page = doc.load_page(i)
+                # Increase resolution for clarity
+                zoom = 2.0 
+                mat = fitz.Matrix(zoom, zoom)
+                pix = page.get_pixmap(matrix=mat)
+                
+                # Convert pixmap to PIL Image
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                
+                # Create CTkImage or PhotoImage
+                # Using CTkImage for high-DPI support if needed, but PhotoImage is faster for scrolling large images
+                # Scale down slightly for viewability
+                view_width = 750
+                view_height = int(pix.height * (750 / pix.width))
+                
+                ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(view_width, view_height))
+                
+                page_lbl = ctk.CTkLabel(self.pages_container, text="", image=ctk_img)
+                page_lbl.image = ctk_img # Keep reference
+                page_lbl.pack(pady=10, padx=20)
+                
+            doc.close()
         except Exception as e:
-            messagebox.showerror("Error", f"Cannot open PDF:\n{e}")
+            self.status_lbl.configure(text=f"Error loading preview: {e}", text_color="#EF4444")
+
+    def _download(self):
+        """Ask user for location and save a copy of the PDF."""
+        try:
+            filename = os.path.basename(self.pdf_path)
+            save_path = filedialog.asksaveasfilename(
+                title="Download Invoice",
+                initialfile=filename,
+                defaultextension=".pdf",
+                filetypes=[("PDF Documents", "*.pdf")]
+            )
+            if save_path:
+                shutil.copy2(self.pdf_path, save_path)
+                messagebox.showinfo("Downloaded", f"Invoice saved successfully to:\n{save_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to download:\n{e}")
 
     def _print(self):
+        """Invoke system print."""
         try:
             print_pdf(self.pdf_path)
         except Exception as e:

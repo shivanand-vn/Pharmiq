@@ -14,3 +14,4 @@ requests             # API
 schedule             # Tasks
 pyinstaller          # Packaging
 tkcalendar           # Calendar
+pymupdf              # PDF rendering for preview
