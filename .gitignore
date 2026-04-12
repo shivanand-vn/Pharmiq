@@ -29,3 +29,4 @@ ENV/
 *.sqlite
 logs/
 *.log
+Invoice/
