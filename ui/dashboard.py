@@ -63,6 +63,7 @@ class Dashboard(ctk.CTkFrame):
             ("Dashboard", "layout", True, self._go_dashboard, ["Admin", "Biller", "Accountant"]),
             ("Customers", "store", False, self._go_customers, ["Admin", "Biller"]),
             ("Billing/Invoices", "file-text", False, self._go_invoices, ["Admin", "Biller", "Accountant"]),
+            ("Invoice History", "archive", False, self._go_invoice_history, ["Admin", "Biller", "Accountant"]),
             ("Inventory", "package", False, self._go_inventory, ["Admin", "Accountant", "Biller"]),
             ("Returns", "rotate-ccw", False, self._go_returns, ["Admin", "Biller"]),
             ("Reports & Analytics", "bar-chart", False, self._show_reports, ["Admin", "Accountant"]),
@@ -73,7 +74,7 @@ class Dashboard(ctk.CTkFrame):
 
         icons = {
             "layout": "⊞", "store": "🏪", "box": "📦", "file-text": "📄",
-            "package": "🗃", "rotate-ccw": "↩", "bar-chart": "📊", "users": "👥", "settings": "⚙"
+            "archive": "📜", "package": "🗃", "rotate-ccw": "↩", "bar-chart": "📊", "users": "👥", "settings": "⚙"
         }
 
         # Narrow symbols need an extra space to visually align with double-width emojis
@@ -484,6 +485,13 @@ class Dashboard(ctk.CTkFrame):
         for widget in self.master.winfo_children():
             widget.destroy()
         view = ReturnsView(self.master, self.user, self.app)
+        view.pack(fill="both", expand=True)
+
+    def _go_invoice_history(self):
+        from ui.invoice_history_view import InvoiceHistoryView
+        for widget in self.master.winfo_children():
+            widget.destroy()
+        view = InvoiceHistoryView(self.master, self.user, self.app)
         view.pack(fill="both", expand=True)
 
     def _new_invoice(self):
