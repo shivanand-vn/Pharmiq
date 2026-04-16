@@ -196,7 +196,7 @@ class LoginWindow(ctk.CTkFrame):
         self.username_container = ctk.CTkFrame(
             inner, fg_color=self.INPUT_BG,
             corner_radius=10, border_width=1.5,
-            border_color=self.INPUT_BORDER, height=44,
+            border_color=self.INPUT_BORDER, height=40,
         )
         self.username_container.pack(fill="x", pady=(6, 0))
         self.username_container.pack_propagate(False)
@@ -226,7 +226,7 @@ class LoginWindow(ctk.CTkFrame):
         self.password_container = ctk.CTkFrame(
             inner, fg_color=self.INPUT_BG,
             corner_radius=10, border_width=1.5,
-            border_color=self.INPUT_BORDER, height=44,
+            border_color=self.INPUT_BORDER, height=40,
         )
         self.password_container.pack(fill="x", pady=(6, 0))
         self.password_container.pack_propagate(False)
