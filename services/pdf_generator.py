@@ -188,24 +188,24 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     if hasattr(inv_date, "strftime"):
         inv_date = inv_date.strftime("%d/%m/%Y")
 
-    meta_data = [[
-        Paragraph(f"<b>Invoice No:</b> {invoice.get('invoice_no', '')}", st["small"]),
-        Paragraph("", st["small"]),
-        Paragraph(f"<b>Cases:</b> 0", st["small"]),
-    ], [
-        Paragraph(f"<b>Invoice Date:</b> {inv_date}", st["small"]),
-        Paragraph(f"<b>Near Date:</b> ", st["small"]),
-        Paragraph("", st["small"]),
-    ], [
-        Paragraph(f"<b>Due Date:</b> ", st["small"]),
-        Paragraph("", st["small"]),
-        Paragraph(f"<b>Licence No:</b> {customer.get('license_no', '')}", st["small"]),
-    ]]
+    total_packs = sum(int(it.get("qty", 0)) for it in invoice.get("items", []))
 
-    meta_table = Table(meta_data, colWidths=[page_width * 0.34, page_width * 0.33, page_width * 0.33])
+    meta_data = [
+        [Paragraph("<b>INVOICE & KEY DETAILS</b>", ParagraphStyle("MetaHdg", parent=st["small_bold"], alignment=TA_CENTER)), "", "", ""],
+        [
+            Paragraph(f"Invoice No: {invoice.get('invoice_no', '')}", st["normal"]),
+            Paragraph(f"Date: {inv_date}", st["normal"]),
+            Paragraph(f"Due Date: ", st["normal"]),
+            Paragraph(f"Packs: {total_packs}", st["normal"]),
+        ]
+    ]
+
+    meta_table = Table(meta_data, colWidths=[page_width * 0.30, page_width * 0.30, page_width * 0.25, page_width * 0.15])
     meta_table.setStyle(TableStyle([
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
         ("BOX", (0, 0), (-1, -1), 0.8, BORDER),
-        ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.grey),
+        ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 2),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
         ("LEFTPADDING", (0, 0), (-1, -1), 4),
@@ -242,7 +242,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         Paragraph("<b>Exp</b>", st["small_bold"]),
         Paragraph("<b>M.R.P</b>", st["small_bold"]),
         Paragraph("<b>Tot Qty</b>", st["small_bold"]),
-        Paragraph("<b>TRP</b>", st["small_bold"]),
+        Paragraph("<b>Rate</b>", st["small_bold"]),
         Paragraph("<b>Dis%</b>", st["small_bold"]),
         Paragraph("<b>Free Dis Val*</b>", st["small_bold"]),
         Paragraph("<b>Value*</b>", st["small_bold"]),
@@ -319,7 +319,10 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         Paragraph("<b>CGST</b>", st["small_bold"]),
         Paragraph("<b>TOTAL GST</b>", st["small_bold"]),
     ]
-    gst_rows = [gst_headers]
+    gst_rows = [
+        [Paragraph("<b>TAX SUMMARY</b>", ParagraphStyle("Hdg", parent=st["small_bold"], alignment=TA_CENTER))] + [""] * 6,
+        gst_headers
+    ]
     total_taxable = 0
     total_sgst_sum = 0
     total_cgst_sum = 0
@@ -343,19 +346,21 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     # Total row
     gst_rows.append([
         Paragraph("<b>TOTAL</b>", st["small_bold"]),
-        Paragraph(f"<b>{total_taxable:.2f}</b>", st["small_bold"]),
-        Paragraph("<b>0.00</b>", st["small_bold"]),
-        Paragraph(f"<b>{invoice.get('discount_amount', 0):.2f}</b>", st["small_bold"]),
-        Paragraph(f"<b>{total_sgst_sum:.2f}</b>", st["small_bold"]),
-        Paragraph(f"<b>{total_cgst_sum:.2f}</b>", st["small_bold"]),
-        Paragraph(f"<b>{total_gst_sum:.2f}</b>", st["small_bold"]),
+        Paragraph(f"{total_taxable:.2f}", st["small"]),
+        Paragraph("0.00", st["small"]),
+        Paragraph(f"{invoice.get('discount_amount', 0):.2f}", st["small"]),
+        Paragraph(f"{total_sgst_sum:.2f}", st["small"]),
+        Paragraph(f"{total_cgst_sum:.2f}", st["small"]),
+        Paragraph(f"{total_gst_sum:.2f}", st["small"]),
     ])
 
     gst_col_widths = [page_width * 0.10, page_width * 0.10, page_width * 0.09,
                       page_width * 0.10, page_width * 0.09, page_width * 0.09, page_width * 0.10]
     gst_table = Table(gst_rows, colWidths=gst_col_widths)
     gst_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG), # Main Header
+        ("BACKGROUND", (0, 1), (-1, 1), HEADER_BG), # Column Header
         ("BOX", (0, 0), (-1, -1), 0.8, BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTSIZE", (0, 0), (-1, -1), 7),
@@ -370,12 +375,13 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     total_qty = sum(int(it.get("qty", 0)) for it in items)
 
     totals_data = [
-        [Paragraph(f"Total Items  :  {total_items}", st["small_bold"]),
+        [Paragraph("<b>TOTALS BREAKDOWN</b>", ParagraphStyle("Hdg", parent=st["small_bold"], alignment=TA_CENTER)), "", ""],
+        [Paragraph(f"<b>Total Items :<br/>{total_items}</b>", st["small_bold"]),
          Paragraph("", st["small"]),
          Paragraph(f"<b>{total_taxable:.2f}</b>", st["right_bold"])],
-        [Paragraph(f"Total Qty  :  {total_qty}", st["small_bold"]),
-         Paragraph("", st["small"]),
-         Paragraph("", st["right"])],
+        [Paragraph(f"<b>Total Qty : {total_qty}</b>", st["small_bold"]),
+         Paragraph("-" * 25, st["small"]),
+         Paragraph("-" * 20, st["right"])],
         [Paragraph("", st["small"]),
          Paragraph("DIS AMT", st["small"]),
          Paragraph(f"{invoice.get('discount_amount', 0):.2f}", st["right"])],
@@ -390,9 +396,11 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
          Paragraph("0.00", st["right"])],
     ]
 
-    totals_col = [page_width * 0.10, page_width * 0.12, page_width * 0.11]
+    totals_col = [page_width * 0.11, page_width * 0.12, page_width * 0.10]
     totals_table = Table(totals_data, colWidths=totals_col)
     totals_table.setStyle(TableStyle([
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
         ("BOX", (0, 0), (-1, -1), 0.8, BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTSIZE", (0, 0), (-1, -1), 7),
@@ -422,7 +430,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         Paragraph("<b>Grand Total</b>", st["right_bold"]),
     ], [
         Paragraph("", st["small"]),
-        Paragraph(f"<b>{grand_total:.2f}</b>",
+        Paragraph(f"<b>Grand Total: {grand_total:.2f}</b>",
                   ParagraphStyle("GT", parent=st["right_bold"], fontSize=14, leading=16)),
     ]]
     amt_gt_table = Table(amt_gt_data, colWidths=[page_width * 0.65, page_width * 0.35])
@@ -507,12 +515,45 @@ def open_pdf(pdf_path):
 
 
 def print_pdf(pdf_path):
-    """Send PDF to default printer (Windows)."""
+    """
+    Send PDF to default printer.
+    On Windows, tries the 'print' shell verb first.
+    Fallback: Uses Microsoft Edge (guaranteed on Win10/11) to print headlessly.
+    """
     import subprocess
     import platform
+    import os
 
     system = platform.system()
     if system == "Windows":
-        os.startfile(pdf_path, "print")
+        try:
+            # Try standard shell 'print' (requires registered PDF handler like Adobe)
+            os.startfile(pdf_path, "print")
+        except Exception:
+            try:
+                # Fallback: Use MS Edge to send to default printer headlessly
+                # Try to find Edge executable in common paths if it's not in PATH
+                edge_path = "msedge.exe"
+                common_paths = [
+                    os.path.join(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"), "Microsoft\\Edge\\Application\\msedge.exe"),
+                    os.path.join(os.environ.get("ProgramFiles", "C:\\Program Files"), "Microsoft\\Edge\\Application\\msedge.exe")
+                ]
+                for p in common_paths:
+                    if os.path.exists(p):
+                        edge_path = f'"{p}"'
+                        break
+
+                subprocess.run(
+                    f"{edge_path} --headless --print-to-default \"{pdf_path}\"",
+                    check=True, shell=True
+                )
+            except Exception as fallback_err:
+                # If Edge isn't found or fails, open the file so the user can print manually
+                os.startfile(pdf_path)
+                raise RuntimeError(
+                    "Standard printing failed and Edge fallback failed. "
+                    "The invoice has been opened for manual printing."
+                )
     else:
+        # Standard Linux/Mac printing
         subprocess.run(["lpr", pdf_path])
