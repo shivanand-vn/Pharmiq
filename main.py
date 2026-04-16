@@ -33,6 +33,7 @@ class PharmIQApp(ctk.CTk):
         x = (self.winfo_screenwidth() - 1200) // 2
         y = (self.winfo_screenheight() - 750) // 2
         self.geometry(f"+{x}+{y}")
+        self.after(0, lambda: self.state('zoomed'))
 
         # App state
         self.current_user = None
