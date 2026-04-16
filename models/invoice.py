@@ -144,3 +144,24 @@ def get_invoices_by_distributor(distributor_id, limit=50):
         """,
         (distributor_id, limit),
     )
+
+def search_invoice_history(distributor_id, query=""):
+    """
+    Search all invoices for a distributor using multiple criteria.
+    Joins with customers to search by Shop Name, License No, or GST No.
+    """
+    like_q = f"%{query}%"
+    return fetch_all(
+        """
+        SELECT i.invoice_no, i.invoice_date, i.grand_total,
+               i.payment_type, c.shop_name AS customer_name,
+               c.license_no, c.gst_no
+        FROM invoices i
+        JOIN customers c ON c.license_no = i.customer_license_no
+        WHERE i.distributor_id = %s
+          AND (i.invoice_no LIKE %s OR c.shop_name LIKE %s OR c.license_no LIKE %s OR c.gst_no LIKE %s)
+        ORDER BY i.created_at DESC
+        LIMIT 100
+        """,
+        (distributor_id, like_q, like_q, like_q, like_q),
+    )
