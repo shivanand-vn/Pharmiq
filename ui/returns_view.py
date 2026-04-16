@@ -49,7 +49,7 @@ class ReturnsView(ctk.CTkFrame):
         ).pack(side="left", padx=20, pady=12)
 
         ctk.CTkLabel(
-            top, text="↩️  Process Customer Return",
+            top, text="Process Customer Return",
             font=ctk.CTkFont(size=18, weight="bold"), text_color=ACCENT,
         ).pack(side="left", padx=10)
 
