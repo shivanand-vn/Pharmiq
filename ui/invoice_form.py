@@ -89,10 +89,30 @@ class InvoiceForm(ctk.CTkFrame):
         self._add_product_row()
 
         # Bind Shift+Enter to add a new product row from anywhere in the form
-        self.winfo_toplevel().bind("<Shift-Return>", lambda e: self._add_product_row())
+        self.toplevel = self.winfo_toplevel()
+        self.toplevel.bind("<Shift-Return>", self._on_shift_enter)
 
-        # Autofocus customer search
-        self.after(200, lambda: self.cust_search.focus())
+        # Unbind on destruction to prevent "bad window path" errors
+        self.bind("<Destroy>", self._cleanup)
+
+        # Autofocus customer search (safe check)
+        self.after(200, self._initial_focus)
+
+    def _on_shift_enter(self, event=None):
+        if self.winfo_exists():
+            self._add_product_row()
+
+    def _cleanup(self, event=None):
+        # Only unbind if event is for this widget specifically
+        if event.widget == self:
+            try:
+                self.toplevel.unbind("<Shift-Return>")
+            except Exception:
+                pass
+
+    def _initial_focus(self):
+        if self.winfo_exists() and hasattr(self, 'cust_search') and self.cust_search.winfo_exists():
+            self.cust_search.focus()
 
     # ─────────────────────────────────────────────────────────────
     #  HEADER (Invoice Details)
