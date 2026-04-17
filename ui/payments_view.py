@@ -28,11 +28,18 @@ class PaymentsView(ctk.CTkFrame):
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
         header.pack_propagate(False)
 
+        ctk.CTkButton(
+            header, text="← Back", width=80, height=32,
+            fg_color="transparent", text_color="#1B4F6B", border_width=1, border_color="#1B4F6B",
+            corner_radius=10, font=ctk.CTkFont(weight="bold"),
+            command=self._go_dashboard
+        ).pack(side="left")
+
         ctk.CTkLabel(
-            header, text="Customer Payments",
+            header, text="  Customer Payments",
             font=ctk.CTkFont(size=26, weight="bold"),
             text_color="#1B4F6B"
-        ).pack(side="left")
+        ).pack(side="left", padx=10)
 
         # Search
         search_frame = ctk.CTkFrame(header, fg_color="transparent")
@@ -122,6 +129,13 @@ class PaymentsView(ctk.CTkFrame):
             ).pack(expand=True)
 
             ctk.CTkFrame(self.scroll_frame, fg_color="#F1F5F9", height=1).pack(fill="x", padx=15)
+
+    def _go_dashboard(self):
+        from ui.dashboard import Dashboard
+        for w in self.master.winfo_children():
+            w.destroy()
+        view = Dashboard(self.master, self.user, self.app)
+        view.pack(fill="both", expand=True)
 
     def _show_detail(self, customer):
         for w in self.master.winfo_children():
