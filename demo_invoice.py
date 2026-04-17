@@ -125,8 +125,8 @@ def generate_demo_pdf():
     print("-" * 60)
 
     pdf_path = generate_invoice_pdf(invoice, distributor, customer, output_path)
-    print(f"\n  ✅ PDF generated: {pdf_path}")
-    print(f"  📂 Opening PDF...")
+    print(f"\n  [SUCCESS] PDF generated: {pdf_path}")
+    print(f"  [OPENING] Opening PDF...")
     print("=" * 60)
 
     open_pdf(pdf_path)

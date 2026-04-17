@@ -101,12 +101,12 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     st = _styles()
     doc = SimpleDocTemplate(
         output_path, pagesize=A4,
-        leftMargin=12 * mm, rightMargin=12 * mm,
-        topMargin=10 * mm, bottomMargin=10 * mm,
+        leftMargin=5 * mm, rightMargin=5 * mm,
+        topMargin=5 * mm, bottomMargin=5 * mm,
     )
 
     elements = []
-    page_width = A4[0] - 24 * mm  # usable width
+    page_width = A4[0] - 10 * mm  # usable width
 
     # ══════════════════════════════════════════════════
     # HEADER: Company info (left) | TAX INVOICE (center) | Party info (right)
@@ -216,20 +216,20 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     # PRODUCT TABLE
     # ══════════════════════════════════════════════════
     col_widths = [
-        page_width * 0.04,   # Sl No
-        page_width * 0.06,   # Mfg
-        page_width * 0.18,   # Product Name
-        page_width * 0.06,   # Packs
-        page_width * 0.10,   # Batch
-        page_width * 0.07,   # Exp
-        page_width * 0.07,   # MRP
-        page_width * 0.06,   # Tot Qty
-        page_width * 0.07,   # Rate
-        page_width * 0.06,   # Dis%
-        page_width * 0.07,   # Free Dis Val
-        page_width * 0.08,   # Value*
-        page_width * 0.04,   # *GST
-        page_width * 0.04,   # HSN
+        page_width * 0.035,   # Sl No
+        page_width * 0.045,   # Mfg
+        page_width * 0.20,    # Product Name
+        page_width * 0.05,    # Packs
+        page_width * 0.10,    # Batch
+        page_width * 0.065,   # Exp
+        page_width * 0.065,   # MRP
+        page_width * 0.06,    # Tot Qty
+        page_width * 0.065,   # Rate
+        page_width * 0.06,    # Dis%
+        page_width * 0.075,   # Free Dis Val
+        page_width * 0.08,    # Value
+        page_width * 0.055,   # GST
+        page_width * 0.045,   # HSN
     ]
 
     # Header row
@@ -244,15 +244,19 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         Paragraph("<b>Tot Qty</b>", st["small_bold"]),
         Paragraph("<b>Rate</b>", st["small_bold"]),
         Paragraph("<b>Dis%</b>", st["small_bold"]),
-        Paragraph("<b>Free Dis Val*</b>", st["small_bold"]),
-        Paragraph("<b>Value*</b>", st["small_bold"]),
-        Paragraph("<b>*GST</b>", st["small_bold"]),
+        Paragraph("<b>Free Dis Val</b>", st["small_bold"]),
+        Paragraph("<b>Value</b>", st["small_bold"]),
+        Paragraph("<b>GST</b>", st["small_bold"]),
         Paragraph("<b>HSN</b>", st["small_bold"]),
     ]
 
     product_rows = [headers]
 
     items = invoice.get("items", [])
+    
+    if len(items) > 20:
+        raise ValueError("Maximum 20 items allowed per invoice.")
+        
     for idx, item in enumerate(items, 1):
         exp_date = item.get("expiry_date", "")
         if hasattr(exp_date, "strftime"):
@@ -276,11 +280,12 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         ]
         product_rows.append(row)
 
-    # Add empty rows to fill space (minimum 10 rows for clean look)
-    while len(product_rows) < 10:
+    # Fill remaining rows with empty values to maintain FIXED exactly 20 rows (+1 for header)
+    while len(product_rows) <= 20: 
         product_rows.append([""] * 14)
 
-    product_table = Table(product_rows, colWidths=col_widths, repeatRows=1)
+    # Note: Use a fixed row height, e.g., 14.5, to ensure layout doesn't shift
+    product_table = Table(product_rows, colWidths=col_widths, rowHeights=[18] + [14.5] * 20, repeatRows=1)
     product_table.setStyle(TableStyle([
         # Header
         ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
@@ -557,3 +562,34 @@ def print_pdf(pdf_path):
     else:
         # Standard Linux/Mac printing
         subprocess.run(["lpr", pdf_path])
+
+
+def generate_invoice(data_dict):
+    """
+    Wrapper function to generate an invoice from a single data dictionary.
+    Includes placeholders map and dynamic extraction.
+    
+    data_dict should include:
+        invoice: dict of core invoice details and 'items' list
+        customer: dict mapping customer details
+        distributor: dict mapping company details
+    """
+    invoice = data_dict.get('invoice', {})
+    customer = data_dict.get('customer', {})
+    distributor = data_dict.get('distributor', {})
+    output_path = data_dict.get('output_path')
+
+    # Example of how placeholders dynamically map:
+    # {invoice_no}   -> invoice.get('invoice_no')
+    # {invoice_date} -> invoice.get('invoice_date')
+    # {customer_name}-> customer.get('license_holder_name')
+    # {gst_no}       -> customer.get('gst_no')
+    # {license_no}   -> customer.get('license_no')
+    # {items}        -> invoice.get('items')
+
+    return generate_invoice_pdf(
+        invoice=invoice,
+        distributor=distributor,
+        customer=customer,
+        output_path=output_path
+    )
