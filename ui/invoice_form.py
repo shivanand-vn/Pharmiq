@@ -88,6 +88,9 @@ class InvoiceForm(ctk.CTkFrame):
         # Add initial empty row
         self._add_product_row()
 
+        # Bind Shift+Enter to add a new product row from anywhere in the form
+        self.winfo_toplevel().bind("<Shift-Return>", lambda e: self._add_product_row())
+
         # Autofocus customer search
         self.after(200, lambda: self.cust_search.focus())
 
