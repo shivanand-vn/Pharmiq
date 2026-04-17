@@ -207,9 +207,26 @@ CREATE TABLE IF NOT EXISTS invoices (
     total_gst DECIMAL(10,2) DEFAULT 0.00,
     grand_total DECIMAL(12,2) DEFAULT 0.00,
     amount_in_words VARCHAR(500),
+    paid_amount DECIMAL(12,2) DEFAULT 0.00,
+    status ENUM('Pending', 'Partial', 'Paid') DEFAULT 'Pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (customer_license_no) REFERENCES customers(license_no)
+) ENGINE=InnoDB;
+
+-- ----------------------------
+-- PAYMENTS
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    distributor_id INT NOT NULL,
+    customer_license_no VARCHAR(50) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    payment_mode ENUM('Cash', 'UPI', 'Bank') NOT NULL,
+    payment_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id),
     FOREIGN KEY (customer_license_no) REFERENCES customers(license_no)
 ) ENGINE=InnoDB;
 

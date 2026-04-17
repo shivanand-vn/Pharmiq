@@ -64,6 +64,7 @@ class Dashboard(ctk.CTkFrame):
             ("Customers", "store", False, self._go_customers, ["Admin", "Biller"]),
             ("Billing/Invoices", "file-text", False, self._go_invoices, ["Admin", "Biller", "Accountant"]),
             ("Invoice History", "archive", False, self._go_invoice_history, ["Admin", "Biller", "Accountant"]),
+            ("Payments", "credit-card", False, self._go_payments, ["Admin", "Accountant"]),
             ("Inventory", "package", False, self._go_inventory, ["Admin", "Accountant", "Biller"]),
             ("Returns", "rotate-ccw", False, self._go_returns, ["Admin", "Biller"]),
             ("Reports & Analytics", "bar-chart", False, self._show_reports, ["Admin", "Accountant"]),
@@ -74,7 +75,7 @@ class Dashboard(ctk.CTkFrame):
 
         icons = {
             "layout": "⊞", "store": "🏪", "box": "📦", "file-text": "📄",
-            "archive": "📜", "package": "🗃", "rotate-ccw": "↩", "bar-chart": "📊", "users": "👥", "settings": "⚙"
+            "archive": "📜", "credit-card": "💳", "package": "🗃", "rotate-ccw": "↩", "bar-chart": "📊", "users": "👥", "settings": "⚙"
         }
 
         # Narrow symbols need an extra space to visually align with double-width emojis
@@ -412,16 +413,14 @@ class Dashboard(ctk.CTkFrame):
                 text_color="#4B5563", anchor="w" if text != "Status" else "center"
             ).pack(side="left", padx=10)
 
-        def get_status_style(pay_type, idx):
-            options = [
-                ("Paid", "#10B981", "#D1FAE5"),
-                ("Pending", "#F59E0B", "#FEF3C7"),
-                ("Overdue", "#EF4444", "#FEE2E2")
-            ]
-            pt = str(pay_type).lower()
-            if "cash" in pt or "upi" in pt: return options[0]
-            if "credit" in pt: return options[1] # Map credit to pending
-            return options[0] # Default
+        def get_status_style(status, idx):
+            options = {
+                "Paid": ("Paid", "#10B981", "#D1FAE5"),
+                "Pending": ("Pending", "#F59E0B", "#FEF3C7"),
+                "Partial": ("Partial", "#F39C12", "#FDEBD0"),
+                "Overdue": ("Overdue", "#EF4444", "#FEE2E2")
+            }
+            return options.get(status, options["Pending"])
 
         for idx, inv in enumerate(invoices):
             row = ctk.CTkFrame(self.invoices_scroll, fg_color="transparent", height=45)
@@ -446,7 +445,7 @@ class Dashboard(ctk.CTkFrame):
                     anchor="w"
                 ).pack(side="left", padx=10)
 
-            stat_text, text_c, bg_c = get_status_style(inv.get("payment_type", ""), idx)
+            stat_text, text_c, bg_c = get_status_style(inv.get("status", "Pending"), idx)
             badge_frame = ctk.CTkFrame(row, fg_color=bg_c, corner_radius=12, width=80, height=24)
             badge_frame.pack_propagate(False)
             badge_frame.pack(side="left", padx=10, pady=10)
@@ -492,6 +491,13 @@ class Dashboard(ctk.CTkFrame):
         for widget in self.master.winfo_children():
             widget.destroy()
         view = InvoiceHistoryView(self.master, self.user, self.app)
+        view.pack(fill="both", expand=True)
+
+    def _go_payments(self):
+        from ui.payments_view import PaymentsView
+        for widget in self.master.winfo_children():
+            widget.destroy()
+        view = PaymentsView(self.master, self.user, self.app)
         view.pack(fill="both", expand=True)
 
     def _new_invoice(self):

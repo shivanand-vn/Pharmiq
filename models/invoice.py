@@ -135,7 +135,7 @@ def get_invoices_by_distributor(distributor_id, limit=50):
     return fetch_all(
         """
         SELECT i.invoice_no, i.invoice_date, i.grand_total,
-               i.payment_type, c.shop_name AS customer_name
+               i.payment_type, i.status, i.paid_amount, c.shop_name AS customer_name
         FROM invoices i
         JOIN customers c ON c.license_no = i.customer_license_no
         WHERE i.distributor_id = %s
@@ -154,7 +154,7 @@ def search_invoice_history(distributor_id, query=""):
     return fetch_all(
         """
         SELECT i.invoice_no, i.invoice_date, i.grand_total,
-               i.payment_type, c.shop_name AS customer_name,
+               i.payment_type, i.status, i.paid_amount, c.shop_name AS customer_name,
                c.license_no, c.gst_no
         FROM invoices i
         JOIN customers c ON c.license_no = i.customer_license_no
