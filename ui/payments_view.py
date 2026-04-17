@@ -162,7 +162,6 @@ class CustomerPaymentDetail(ctk.CTkFrame):
         ).pack(side="left", padx=15)
 
     def _build_content(self):
-        content = ctk.CTkGrid(self, fg_color="transparent") # Helper or just use grid on content
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.grid(row=1, column=0, sticky="nsew", padx=30, pady=(0, 30))
         content.columnconfigure(0, weight=7)
