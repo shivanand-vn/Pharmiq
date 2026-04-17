@@ -1,6 +1,6 @@
 """
-Payments View — Streamlined Customer Payments with Dynamic Sidebar.
-All actions (Logs & Payment) happen on a single page.
+Payments View — Streamlined Customer Payments with Descriptive Sidebar.
+Restores the "described sections" experience within the sidebar.
 """
 
 import customtkinter as ctk
@@ -79,8 +79,8 @@ class PaymentsView(ctk.CTkFrame):
         self.scroll_frame = ctk.CTkScrollableFrame(table_container, fg_color="transparent")
         self.scroll_frame.pack(fill="both", expand=True, padx=2, pady=(0, 10))
         
-        # --- RIGHT: SIDE PANEL ---
-        self.side_panel = ctk.CTkFrame(content, fg_color="transparent")
+        # --- RIGHT: SIDE PANEL (SCROLLABLE) ---
+        self.side_panel = ctk.CTkScrollableFrame(content, fg_color="transparent", label_text="")
         self.side_panel.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
         
         self._show_placeholder()
@@ -90,11 +90,12 @@ class PaymentsView(ctk.CTkFrame):
         for w in self.side_panel.winfo_children():
             w.destroy()
         
-        ph = ctk.CTkFrame(self.side_panel, fg_color="#FFFFFF", corner_radius=15, border_width=1, border_color="#E2E8F0")
+        ph = ctk.CTkFrame(self.side_panel, fg_color="#FFFFFF", corner_radius=15, border_width=1, border_color="#E2E8F0", height=600)
         ph.pack(fill="both", expand=True)
+        ph.pack_propagate(False)
         
         ctk.CTkLabel(ph, text="No Customer Selected", font=ctk.CTkFont(size=16, weight="bold"), text_color="#94A3B8").pack(expand=True)
-        ctk.CTkLabel(ph, text="Click 📜 Logs or 💳 Pay to view details.", font=ctk.CTkFont(size=13), text_color="#CBD5E1").pack(expand=True, pady=(0, 100))
+        ctk.CTkLabel(ph, text="Click 📜 Logs or 💳 Pay to view descriptive details.", font=ctk.CTkFont(size=13), text_color="#CBD5E1").pack(expand=True, pady=(0, 200))
 
     def _refresh_customers(self):
         for w in self.scroll_frame.winfo_children():
@@ -130,7 +131,6 @@ class PaymentsView(ctk.CTkFrame):
             btn_frame = ctk.CTkFrame(row, fg_color="transparent", width=180)
             btn_frame.pack(side="left", padx=15)
             
-            # Logs Button
             ctk.CTkButton(
                 btn_frame, text="📜 Logs", width=80, height=30,
                 fg_color="#F1F5F9", text_color="#475569", hover_color="#E2E8F0", corner_radius=8,
@@ -138,7 +138,6 @@ class PaymentsView(ctk.CTkFrame):
                 command=lambda cust=c: self._update_panel(cust, "logs")
             ).pack(side="left", padx=(0, 5))
             
-            # Pay Button
             ctk.CTkButton(
                 btn_frame, text="💳 Pay", width=80, height=30,
                 fg_color="#1B4F6B", hover_color="#0F364A", corner_radius=8,
@@ -148,118 +147,142 @@ class PaymentsView(ctk.CTkFrame):
 
             ctk.CTkFrame(self.scroll_frame, fg_color="#F1F5F9", height=1).pack(fill="x", padx=10)
 
+    def _build_card(self, title, icon):
+        card = ctk.CTkFrame(self.side_panel, fg_color="#FFFFFF", corner_radius=15, border_width=1, border_color="#E2E8F0")
+        card.pack(fill="x", pady=(0, 15))
+        
+        header = ctk.CTkFrame(card, fg_color="transparent")
+        header.pack(fill="x", padx=20, pady=(15, 10))
+        ctk.CTkLabel(header, text=f"{icon} {title}", font=ctk.CTkFont(size=15, weight="bold"), text_color="#1E293B").pack(side="left")
+        return card
+
     def _update_panel(self, customer, mode):
         for w in self.side_panel.winfo_children():
             w.destroy()
             
-        main_card = ctk.CTkFrame(self.side_panel, fg_color="#FFFFFF", corner_radius=15, border_width=1, border_color="#E2E8F0")
-        main_card.pack(fill="both", expand=True)
-        
-        # Header / Mini-Summary
-        header = ctk.CTkFrame(main_card, fg_color="#F8FAFC", corner_radius=12)
-        header.pack(fill="x", padx=15, pady=15)
-        
-        ctk.CTkLabel(header, text=customer["shop_name"], font=ctk.CTkFont(size=16, weight="bold"), text_color="#1B4F6B").pack(anchor="w", padx=15, pady=(10, 2))
-        
+        # 1. Summary Card
+        summ_card = self._build_card("Financial Summary", "📊")
         pending = float(customer["outstanding_balance"])
-        ctk.CTkLabel(header, text=f"Pending: ₹{pending:,.2f}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#E11D48" if pending > 0 else "#10B981").pack(anchor="w", padx=15, pady=(0, 10))
-
-        if mode == "logs":
-            self._render_logs_view(customer, main_card)
-        else:
-            self._render_pay_view(customer, main_card)
-
-    def _render_logs_view(self, customer, container):
-        ctk.CTkLabel(container, text="Payment History", font=ctk.CTkFont(size=14, weight="bold"), text_color="#64748B").pack(anchor="w", padx=20, pady=(5, 10))
         
-        scroll = ctk.CTkScrollableFrame(container, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=10, pady=(0, 15))
+        pb = ctk.CTkFrame(summ_card, fg_color="#FFF1F2", corner_radius=10)
+        pb.pack(fill="x", padx=20, pady=5)
+        ctk.CTkLabel(pb, text=customer["shop_name"], font=ctk.CTkFont(size=14, weight="bold"), text_color="#1B4F6B").pack(pady=(10, 2))
+        ctk.CTkLabel(pb, text=f"Pending: ₹{pending:,.2f}", font=ctk.CTkFont(size=18, weight="bold"), text_color="#E11D48").pack(pady=(0, 10))
+
+        for l, v, c in [("Total Invoiced", f"₹{float(customer['total_invoiced']):,.2f}", "#64748B"), ("Total Paid", f"₹{float(customer['total_paid']):,.2f}", "#10B981")]:
+            f = ctk.CTkFrame(summ_card, fg_color="transparent")
+            f.pack(fill="x", padx=25, pady=3)
+            ctk.CTkLabel(f, text=l, font=ctk.CTkFont(size=12), text_color="#64748B").pack(side="left")
+            ctk.CTkLabel(f, text=v, font=ctk.CTkFont(size=13, weight="bold"), text_color=c).pack(side="right")
+        ctk.CTkFrame(summ_card, fg_color="transparent", height=10).pack()
+
+        # 2. Invoice History Card (Always present for context)
+        inv_card = self._build_card("Invoice History", "📄")
+        self._render_invoice_history(customer, inv_card)
+
+        # 3. Mode-specific Card
+        if mode == "logs":
+            log_card = self._build_card("Payment logs", "📜")
+            self._render_payment_logs(customer, log_card)
+        else:
+            form_card = self._build_card("Record New Payment", "💸")
+            self._render_payment_form(customer, form_card)
+
+    def _render_invoice_history(self, customer, card):
+        container = ctk.CTkFrame(card, fg_color="transparent")
+        container.pack(fill="x", padx=15, pady=(0, 15))
+        
+        try:
+            invoices = get_invoices_for_customer(customer["license_no"])
+        except: invoices = []
+
+        if not invoices:
+            ctk.CTkLabel(container, text="No invoices found.", text_color="#94A3B8").pack(pady=10)
+            return
+
+        h = ctk.CTkFrame(container, fg_color="#F8FAFC", height=30)
+        h.pack(fill="x", pady=5)
+        for t, w in [("Inv No", 80), ("Date", 80), ("Status", 80)]:
+            ctk.CTkLabel(h, text=t, width=w, font=ctk.CTkFont(size=11, weight="bold"), text_color="#64748B").pack(side="left", padx=5)
+
+        for inv in invoices[:5]: # Show last 5
+            row = ctk.CTkFrame(container, fg_color="transparent", height=30)
+            row.pack(fill="x")
+            ctk.CTkLabel(row, text=inv["invoice_no"], width=80, anchor="w", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
+            dt = inv["invoice_date"]
+            if hasattr(dt, "strftime"): dt = dt.strftime("%d/%m/%y")
+            ctk.CTkLabel(row, text=dt, width=80, anchor="w", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
+            
+            st = inv["status"]
+            txt_c = "#059669" if st=="Paid" else "#D97706" if st=="Partial" else "#DC2626"
+            ctk.CTkLabel(row, text=st, width=80, font=ctk.CTkFont(size=10, weight="bold"), text_color=txt_c).pack(side="left", padx=5)
+
+    def _render_payment_logs(self, customer, card):
+        container = ctk.CTkFrame(card, fg_color="transparent")
+        container.pack(fill="x", padx=15, pady=(0, 15))
         
         try:
             payments = get_payment_history(customer["license_no"])
-        except:
-            payments = []
-            
+        except: payments = []
+
         if not payments:
-            ctk.CTkLabel(scroll, text="No payment history.", text_color="#94A3B8").pack(pady=40)
+            ctk.CTkLabel(container, text="No payments recorded.", text_color="#94A3B8").pack(pady=10)
             return
 
-        for p in payments:
-            row = ctk.CTkFrame(scroll, fg_color="transparent")
-            row.pack(fill="x", pady=5)
+        for p in payments[:10]:
+            row = ctk.CTkFrame(container, fg_color="transparent")
+            row.pack(fill="x", pady=3)
             
             dt = p["payment_date"]
             if hasattr(dt, "strftime"): dt = dt.strftime("%b %d, %Y")
             
-            l_frame = ctk.CTkFrame(row, fg_color="transparent")
-            l_frame.pack(side="left", fill="both", expand=True)
-            ctk.CTkLabel(l_frame, text=dt, font=ctk.CTkFont(size=12), text_color="#64748B", anchor="w").pack(fill="x")
-            ctk.CTkLabel(l_frame, text=p["payment_mode"], font=ctk.CTkFont(size=11), text_color="#94A3B8", anchor="w").pack(fill="x")
+            l = ctk.CTkFrame(row, fg_color="transparent")
+            l.pack(side="left", fill="both", expand=True)
+            ctk.CTkLabel(l, text=dt, font=ctk.CTkFont(size=11), text_color="#64748B", anchor="w").pack(fill="x")
+            ctk.CTkLabel(l, text=p["payment_mode"], font=ctk.CTkFont(size=10), text_color="#94A3B8", anchor="w").pack(fill="x")
             
-            ctk.CTkLabel(row, text=f"₹{float(p['amount']):,.2f}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#10B981").pack(side="right", padx=10)
-            ctk.CTkFrame(scroll, fg_color="#F1F5F9", height=1).pack(fill="x")
+            ctk.CTkLabel(row, text=f"₹{float(p['amount']):,.0f}", font=ctk.CTkFont(size=13, weight="bold"), text_color="#10B981").pack(side="right", padx=5)
+            ctk.CTkFrame(container, fg_color="#F1F5F9", height=1).pack(fill="x")
 
-    def _render_pay_view(self, customer, container):
-        ctk.CTkLabel(container, text="Record New Payment", font=ctk.CTkFont(size=14, weight="bold"), text_color="#64748B").pack(anchor="w", padx=20, pady=(5, 15))
+    def _render_payment_form(self, customer, card):
+        container = ctk.CTkFrame(card, fg_color="transparent")
+        container.pack(fill="x", padx=20, pady=(0, 20))
         
-        form_frame = ctk.CTkFrame(container, fg_color="transparent")
-        form_frame.pack(fill="both", expand=True, padx=20)
+        ctk.CTkLabel(container, text="Amount", font=ctk.CTkFont(size=12, weight="bold"), text_color="#475569").pack(anchor="w")
+        amt_entry = ctk.CTkEntry(container, placeholder_text="0.00", height=40, font=ctk.CTkFont(size=16, weight="bold"))
+        amt_entry.pack(fill="x", pady=(2, 12))
         
-        ctk.CTkLabel(form_frame, text="Payment Amount", font=ctk.CTkFont(size=13, weight="bold"), text_color="#475569").pack(anchor="w")
-        amt_entry = ctk.CTkEntry(form_frame, placeholder_text="0.00", height=45, font=ctk.CTkFont(size=18, weight="bold"), corner_radius=8)
-        amt_entry.pack(fill="x", pady=(5, 20))
-        
-        ctk.CTkLabel(form_frame, text="Payment Mode", font=ctk.CTkFont(size=13, weight="bold"), text_color="#475569").pack(anchor="w")
         mode_var = ctk.StringVar(value="Cash")
-        mode_opt = ctk.CTkOptionMenu(form_frame, values=["Cash", "UPI", "Bank Transaction"], variable=mode_var, height=40, corner_radius=8, fg_color="#1B4F6B", button_color="#13415A")
-        mode_opt.pack(fill="x", pady=(5, 20))
+        ctk.CTkOptionMenu(container, values=["Cash", "UPI", "Bank"], variable=mode_var, height=35, fg_color="#1B4F6B").pack(fill="x", pady=10)
         
-        ctk.CTkLabel(form_frame, text="Transaction Date", font=ctk.CTkFont(size=13, weight="bold"), text_color="#475569").pack(anchor="w")
-        date_entry = ctk.CTkEntry(form_frame, height=40, corner_radius=8)
-        date_entry.insert(0, datetime.date.today().strftime("%Y-%m-%d"))
-        date_entry.pack(fill="x", pady=(5, 30))
+        dt_entry = ctk.CTkEntry(container, height=35)
+        dt_entry.insert(0, datetime.date.today().strftime("%Y-%m-%d"))
+        dt_entry.pack(fill="x", pady=10)
         
         def do_submit():
             try:
-                amount = float(amt_entry.get())
-            except ValueError:
+                amt = float(amt_entry.get())
+            except:
                 messagebox.showerror("Error", "Invalid amount.")
                 return
-            
-            if amount <= 0:
-                messagebox.showerror("Error", "Amount must be > 0.")
+            if amt <= 0:
+                messagebox.showerror("Error", "Amount > 0 required.")
                 return
-                
-            outstanding = float(customer["outstanding_balance"])
-            if amount > outstanding + 0.01:
-                messagebox.showerror("Error", f"Amount exceeds pending ₹{outstanding:,.2f}")
+            out = float(customer["outstanding_balance"])
+            if amt > out + 0.01:
+                messagebox.showerror("Error", f"Exceeds pending ₹{out:,.2f}")
                 return
-            
-            # Warning
-            if not messagebox.askyesno("Confirm", f"Record payment of ₹{amount:,.2f} for {customer['shop_name']}?"):
+            if not messagebox.askyesno("Confirm", f"Record ₹{amt:,.2f} for {customer['shop_name']}?"):
                 return
-
             try:
-                record_payment(
-                    distributor_id=self.user["distributor_id"],
-                    customer_license_no=customer["license_no"],
-                    amount=amount,
-                    mode=mode_var.get(),
-                    date=date_entry.get()
-                )
+                record_payment(self.user["distributor_id"], customer["license_no"], amt, mode_var.get(), dt_entry.get())
                 messagebox.showinfo("Success", "Payment recorded.")
-                # Refresh everything
                 self._refresh_customers()
-                self._show_placeholder()
+                self._update_panel(customer, "logs") # Switch to logs to show result
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
-        ctk.CTkButton(
-            form_frame, text="Record Payment", height=50,
-            fg_color="#10B981", hover_color="#059669", corner_radius=10,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=do_submit
-        ).pack(fill="x", pady=(0, 20))
+        ctk.CTkButton(container, text="Confirm Payment", height=45, fg_color="#10B981", font=ctk.CTkFont(weight="bold"), command=do_submit).pack(fill="x", pady=(10, 0))
 
     def _go_dashboard(self):
         from ui.dashboard import Dashboard
