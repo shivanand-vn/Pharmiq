@@ -43,8 +43,22 @@ class LoginWindow(ctk.CTkFrame):
         super().__init__(master, fg_color=self.BG_LIGHT)
         self.on_login_success = on_login_success
         self._password_visible = False
+        self._after_ids = []
         self._build_ui()
         self._load_remembered()
+        self.bind("<Destroy>", self._cleanup)
+
+    def _cleanup(self, event=None):
+        if event.widget == self:
+            for aid in self._after_ids:
+                try: self.after_cancel(aid)
+                except Exception: pass
+            self._after_ids.clear()
+
+    def _safe_focus(self, widget):
+        if self.winfo_exists() and widget and widget.winfo_exists():
+            try: widget.focus()
+            except Exception: pass
 
     def _build_ui(self):
         """Build the split-layout login interface."""
@@ -323,7 +337,7 @@ class LoginWindow(ctk.CTkFrame):
 
         # ── Key bindings ──
         self.password_entry.bind("<Return>", lambda e: self._do_login())
-        self.username_entry.bind("<Return>", lambda e: self.password_entry.focus())
+        self.username_entry.bind("<Return>", lambda e: self._safe_focus(self.password_entry))
 
         # Footer
         footer_frame = ctk.CTkFrame(right, fg_color="transparent")
@@ -484,7 +498,8 @@ class LoginWindow(ctk.CTkFrame):
             reset_btn.configure(state="disabled", text="Sending...")
             modal.update()
 
-            modal.after(800, lambda: _show_success(value))
+            aid = modal.after(800, lambda: _show_success(value))
+            self._after_ids.append(aid)
 
         def _show_success(value):
             modal_status.configure(
@@ -565,7 +580,7 @@ class LoginWindow(ctk.CTkFrame):
                 if saved_user:
                     self.username_entry.insert(0, saved_user)
                     self.remember_var.set(True)
-                    self.password_entry.focus()
+                    self.after(100, lambda: self._safe_focus(self.password_entry))
         except Exception:
             pass
 

@@ -37,6 +37,7 @@ class InvoiceForm(ctk.CTkFrame):
         self.app = app_ref
         self.product_rows = []
         self.selected_customer = None
+        self._after_ids = []
 
         self._build_ui()
 
@@ -96,7 +97,7 @@ class InvoiceForm(ctk.CTkFrame):
         self.bind("<Destroy>", self._cleanup)
 
         # Autofocus customer search (safe check)
-        self.after(200, self._initial_focus)
+        self._after_ids.append(self.after(200, self._initial_focus))
 
     def _on_shift_enter(self, event=None):
         if self.winfo_exists():
@@ -105,14 +106,28 @@ class InvoiceForm(ctk.CTkFrame):
     def _cleanup(self, event=None):
         # Only unbind if event is for this widget specifically
         if event.widget == self:
+            # Cancel all pending after() tasks
+            for aid in self._after_ids:
+                try: self.after_cancel(aid)
+                except Exception: pass
+            self._after_ids.clear()
+
+            # Unbind the Shift+Return shortcut from toplevel
             try:
                 self.toplevel.unbind("<Shift-Return>")
             except Exception:
                 pass
 
     def _initial_focus(self):
-        if self.winfo_exists() and hasattr(self, 'cust_search') and self.cust_search.winfo_exists():
-            self.cust_search.focus()
+        self._safe_focus(self.cust_search)
+
+    def _safe_focus(self, widget):
+        """Safely focus a widget wrapping in try-except to prevent TclError crashes."""
+        if self.winfo_exists() and widget and widget.winfo_exists():
+            try:
+                widget.focus()
+            except Exception:
+                pass
 
     # ─────────────────────────────────────────────────────────────
     #  HEADER (Invoice Details)
@@ -433,7 +448,10 @@ class InvoiceForm(ctk.CTkFrame):
             )
             btn.pack(fill="x", padx=4, pady=2)
         popup.bind("<FocusOut>", lambda e: popup.destroy())
-        popup.focus_set()
+        try:
+            popup.focus_set()
+        except Exception:
+            pass
 
     def _select_product(self, row_data, product, popup):
         # Prevent selecting the same batch twice
@@ -595,7 +613,8 @@ class InvoiceForm(ctk.CTkFrame):
         container.pack(fill="both", expand=True)
 
         def _on_blur(event=None):
-            self.after(100, lambda: self._check_cal_focus(popup))
+            aid = self.after(100, lambda: self._check_cal_focus(popup))
+            self._after_ids.append(aid)
 
         popup.bind("<FocusOut>", _on_blur)
 

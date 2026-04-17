@@ -42,9 +42,23 @@ class InventoryView(ctk.CTkFrame):
         self.suppliers = []
         
         self.is_new_medicine_mode = False
+        self._after_ids = []
 
         self._build_ui()
         self._load_data()
+        self.bind("<Destroy>", self._cleanup)
+
+    def _cleanup(self, event=None):
+        if event.widget == self:
+            for aid in self._after_ids:
+                try: self.after_cancel(aid)
+                except Exception: pass
+            self._after_ids.clear()
+            
+    def _safe_focus(self, widget):
+        if self.winfo_exists() and widget and widget.winfo_exists():
+            try: widget.focus()
+            except Exception: pass
 
     def _build_ui(self):
         # -- Top bar --
@@ -230,7 +244,7 @@ class InventoryView(ctk.CTkFrame):
         self.is_new_medicine_mode = not self.is_new_medicine_mode
         self._apply_mode_layout()
         if self.is_new_medicine_mode:
-            self.field_frames["med_name"]["widget"].focus()
+            self._safe_focus(self.field_frames["med_name"]["widget"])
 
     def _on_med_select(self, val):
         """Auto-fill pricing when medicine is selected."""
@@ -424,7 +438,7 @@ class InventoryView(ctk.CTkFrame):
         self.field_frames["med_drop"]["widget"].set(med_name)
         self._on_med_select(med_name)
         self.field_frames["supplier"]["widget"].set(row.get("supplier_name", ""))
-        self.field_frames["batch"]["widget"].focus()
+        self._safe_focus(self.field_frames["batch"]["widget"])
         self._validate_form()
 
     def _handle_save(self):

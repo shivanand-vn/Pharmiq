@@ -58,10 +58,19 @@ class CustomerView(ctk.CTkFrame):
 
         self.editing_license = None
         self._search_job = None
+        self._after_ids = []
         self._validation_state = {}
 
         self._build_ui()
         self._load_data()
+        self.bind("<Destroy>", self._cleanup)
+
+    def _cleanup(self, event=None):
+        if event.widget == self:
+            for aid in self._after_ids:
+                try: self.after_cancel(aid)
+                except Exception: pass
+            self._after_ids.clear()
 
     def _build_ui(self):
         # ── Top bar ──
@@ -133,8 +142,10 @@ class CustomerView(ctk.CTkFrame):
 
     def _schedule_search(self, event=None):
         if self._search_job:
-            self.after_cancel(self._search_job)
+            try: self.after_cancel(self._search_job)
+            except Exception: pass
         self._search_job = self.after(400, self._load_data)
+        self._after_ids.append(self._search_job)
 
     # ──────────────────────────────────────────────
     # FORM AREA
@@ -364,17 +375,17 @@ class CustomerView(ctk.CTkFrame):
     def _set_valid(self, entry, vlabel, msg=""):
         entry.configure(border_color=VALID_BORDER)
         vlabel.configure(text=f"✓ {msg}" if msg else "", text_color=VALID_BORDER)
-        self.after(10, self._update_save_btn)
+        self._after_ids.append(self.after(10, self._update_save_btn))
 
     def _set_invalid(self, entry, vlabel, msg):
         entry.configure(border_color=INVALID_BORDER)
         vlabel.configure(text=f"✗ {msg}", text_color=INVALID_BORDER)
-        self.after(10, self._update_save_btn)
+        self._after_ids.append(self.after(10, self._update_save_btn))
 
     def _set_neutral(self, entry, vlabel):
         entry.configure(border_color=BORDER_CLR)
         vlabel.configure(text="")
-        self.after(10, self._update_save_btn)
+        self._after_ids.append(self.after(10, self._update_save_btn))
 
     def _validate_license(self):
         val = self.f_license.get().strip()
