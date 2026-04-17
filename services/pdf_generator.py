@@ -131,20 +131,26 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
 
     company_cell = company_lines
 
-    # --- Logo (if available) ---
-    logo_cell = []
+    # --- Center column (Logo + TAX INVOICE) ---
+    center_cell = []
     logo_path = distributor.get("logo_path")
     if logo_path and os.path.exists(logo_path):
         try:
-            logo_cell.append(Image(logo_path, width=40, height=40))
+            logo_img = Image(logo_path, width=45, height=45)
+            # Wrap logo in a mini table to force horizontal centering
+            logo_wrapper = Table([[logo_img]], colWidths=[page_width * 0.25])
+            logo_wrapper.setStyle(TableStyle([
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ]))
+            center_cell.append(logo_wrapper)
         except Exception:
             pass
-
-    # --- Center column ---
-    center_cell = [
-        Paragraph("<b>TAX INVOICE</b>", st["title"]),
-        Paragraph(f"<b>{invoice.get('payment_type', 'Credit').upper()}</b>", st["subtitle"]),
-    ]
+    center_cell.append(Paragraph("<b>TAX INVOICE</b>", st["title"]))
+    center_cell.append(Paragraph(f"<b>{invoice.get('payment_type', 'Credit').upper()}</b>", st["subtitle"]))
 
     # --- Party / Customer column (right) ---
     party_lines = []
@@ -164,7 +170,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     party_cell = party_lines
 
     header_data = [[
-        logo_cell + company_cell,
+        company_cell,
         center_cell,
         party_cell,
     ]]
@@ -172,6 +178,8 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     header_table = Table(header_data, colWidths=[page_width * 0.35, page_width * 0.25, page_width * 0.40])
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("VALIGN", (1, 0), (1, -1), "MIDDLE"),
+        ("ALIGN", (1, 0), (1, -1), "CENTER"),
         ("BOX", (0, 0), (-1, -1), 0.8, BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.5, BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
@@ -244,7 +252,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         Paragraph("<b>Tot Qty</b>", st["small_bold"]),
         Paragraph("<b>Rate</b>", st["small_bold"]),
         Paragraph("<b>Dis%</b>", st["small_bold"]),
-        Paragraph("<b>Free Dis Val</b>", st["small_bold"]),
+        Paragraph("<b>Dis. Value</b>", st["small_bold"]),
         Paragraph("<b>Value</b>", st["small_bold"]),
         Paragraph("<b>GST</b>", st["small_bold"]),
         Paragraph("<b>HSN</b>", st["small_bold"]),
@@ -254,8 +262,8 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
 
     items = invoice.get("items", [])
     
-    if len(items) > 20:
-        raise ValueError("Maximum 20 items allowed per invoice.")
+    if len(items) > 30:
+        raise ValueError("Maximum 30 items allowed per invoice.")
         
     for idx, item in enumerate(items, 1):
         exp_date = item.get("expiry_date", "")
@@ -280,12 +288,12 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
         ]
         product_rows.append(row)
 
-    # Fill remaining rows with empty values to maintain FIXED exactly 20 rows (+1 for header)
-    while len(product_rows) <= 20: 
+    # Fill remaining rows with empty values to maintain FIXED exactly 30 rows (+1 for header)
+    while len(product_rows) <= 30: 
         product_rows.append([""] * 14)
 
-    # Note: Use a fixed row height, e.g., 14.5, to ensure layout doesn't shift
-    product_table = Table(product_rows, colWidths=col_widths, rowHeights=[18] + [14.5] * 20, repeatRows=1)
+    # Note: Use a fixed row height, e.g., 12.5, to ensure layout doesn't shift
+    product_table = Table(product_rows, colWidths=col_widths, rowHeights=[16] + [12.5] * 30, repeatRows=1)
     product_table.setStyle(TableStyle([
         # Header
         ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),

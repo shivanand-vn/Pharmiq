@@ -27,7 +27,7 @@ def generate_demo_pdf():
         "address": "1st Floor, Trade Center, Station Road, Hubli - 580021, Karnataka",
         "gst_no": "29AABCS1234F1Z5",
         "drug_license_no": "KA-HB-20B1/21B1-21786",
-        "logo_path": None,
+        "logo_path": os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logos", "sv_pharma_logo.png"),
         "bank_name": "HDFC BANK LTD",
         "bank_account_no": "99947977777777",
         "bank_ifsc": "HDFC0009254",
