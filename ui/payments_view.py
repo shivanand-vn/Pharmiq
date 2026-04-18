@@ -30,7 +30,8 @@ class PaymentsView(ctk.CTkFrame):
 
         ctk.CTkButton(
             header, text="← Back", width=80, height=35,
-            fg_color="transparent", text_color="#1B4F6B", border_width=1, border_color="#1B4F6B",
+            fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
+            border_width=1, border_color="#E2E8F0",
             corner_radius=10, font=ctk.CTkFont(weight="bold"),
             command=self._go_dashboard
         ).pack(side="left")
@@ -56,19 +57,19 @@ class PaymentsView(ctk.CTkFrame):
     def _build_main_content(self):
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.grid(row=1, column=0, sticky="nsew", padx=30, pady=(10, 30))
-        content.columnconfigure(0, weight=65) # Table
-        content.columnconfigure(1, weight=35) # Side Panel
+        content.columnconfigure(0, weight=1)
+        content.columnconfigure(1, weight=0)
         content.rowconfigure(0, weight=1)
 
         # --- LEFT: CUSTOMER LIST ---
         table_container = ctk.CTkFrame(content, fg_color="#FFFFFF", corner_radius=15, border_width=1, border_color="#E2E8F0")
-        table_container.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        table_container.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
         
         header_row = ctk.CTkFrame(table_container, fg_color="#F8FAFC", corner_radius=0, height=50)
         header_row.pack(fill="x", pady=(15, 5), padx=2)
         header_row.pack_propagate(False)
         
-        cols = [("Customer Name", 280), ("Pending", 140), ("Action", 180)]
+        cols = [("Customer Name", 280), ("Total Paid", 100), ("Pending", 100), ("Total", 100), ("Action", 140)]
         for text, w in cols:
             ctk.CTkLabel(
                 header_row, text=text, width=w,
@@ -80,8 +81,8 @@ class PaymentsView(ctk.CTkFrame):
         self.scroll_frame.pack(fill="both", expand=True, padx=2, pady=(0, 10))
         
         # --- RIGHT: SIDE PANEL (SCROLLABLE) ---
-        self.side_panel = ctk.CTkScrollableFrame(content, fg_color="transparent", label_text="")
-        self.side_panel.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
+        self.side_panel = ctk.CTkScrollableFrame(content, fg_color="transparent", label_text="", width=420)
+        self.side_panel.grid(row=0, column=1, sticky="nsew", padx=0)
         
         self._show_placeholder()
         self._refresh_customers()
@@ -121,25 +122,30 @@ class PaymentsView(ctk.CTkFrame):
             row.bind("<Enter>", on_enter)
             row.bind("<Leave>", on_leave)
 
-            ctk.CTkLabel(row, text=c["shop_name"], width=280, anchor="w", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=15)
+            ctk.CTkLabel(row, text=c["shop_name"], width=280, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color="black").pack(side="left", padx=15)
+            
+            ctk.CTkLabel(row, text=f"₹{float(c['total_paid']):,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14), text_color="#10B981").pack(side="left", padx=15)
             
             balance = float(c['outstanding_balance'])
             balance_color = "#E11D48" if balance > 0 else "#10B981"
-            ctk.CTkLabel(row, text=f"₹{balance:,.2f}", width=140, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color=balance_color).pack(side="left", padx=15)
+            ctk.CTkLabel(row, text=f"₹{balance:,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color=balance_color).pack(side="left", padx=15)
+            
+            ctk.CTkLabel(row, text=f"₹{float(c['total_invoiced']):,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14), text_color="#1B4F6B").pack(side="left", padx=15)
             
             # Actions
             btn_frame = ctk.CTkFrame(row, fg_color="transparent", width=180)
             btn_frame.pack(side="left", padx=15)
-            
+            # Logs Button
             ctk.CTkButton(
-                btn_frame, text="📜 Logs", width=80, height=30,
+                btn_frame, text="Logs", width=65, height=30,
                 fg_color="#F1F5F9", text_color="#475569", hover_color="#E2E8F0", corner_radius=8,
                 font=ctk.CTkFont(size=12, weight="bold"),
                 command=lambda cust=c: self._update_panel(cust, "logs")
             ).pack(side="left", padx=(0, 5))
             
+            # Pay Button
             ctk.CTkButton(
-                btn_frame, text="💳 Pay", width=80, height=30,
+                btn_frame, text="Pay", width=65, height=30,
                 fg_color="#1B4F6B", hover_color="#0F364A", corner_radius=8,
                 font=ctk.CTkFont(size=12, weight="bold"),
                 command=lambda cust=c: self._update_panel(cust, "pay")
@@ -249,13 +255,21 @@ class PaymentsView(ctk.CTkFrame):
         container.pack(fill="x", padx=20, pady=(0, 20))
         
         ctk.CTkLabel(container, text="Amount", font=ctk.CTkFont(size=12, weight="bold"), text_color="#475569").pack(anchor="w")
-        amt_entry = ctk.CTkEntry(container, placeholder_text="0.00", height=40, font=ctk.CTkFont(size=16, weight="bold"))
+        
+        # Numeric validation
+        vcmd = (self.register(self._validate_numeric), '%P')
+        amt_entry = ctk.CTkEntry(
+            container, placeholder_text="0.00", height=40, 
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color="#FFFFFF", border_color="#E2E8F0",
+            validate='key', validatecommand=vcmd
+        )
         amt_entry.pack(fill="x", pady=(2, 12))
         
         mode_var = ctk.StringVar(value="Cash")
         ctk.CTkOptionMenu(container, values=["Cash", "UPI", "Bank"], variable=mode_var, height=35, fg_color="#1B4F6B").pack(fill="x", pady=10)
         
-        dt_entry = ctk.CTkEntry(container, height=35)
+        dt_entry = ctk.CTkEntry(container, height=35, fg_color="#FFFFFF", border_color="#E2E8F0")
         dt_entry.insert(0, datetime.date.today().strftime("%Y-%m-%d"))
         dt_entry.pack(fill="x", pady=10)
         
@@ -283,6 +297,15 @@ class PaymentsView(ctk.CTkFrame):
                 messagebox.showerror("Error", str(e))
 
         ctk.CTkButton(container, text="Confirm Payment", height=45, fg_color="#10B981", font=ctk.CTkFont(weight="bold"), command=do_submit).pack(fill="x", pady=(10, 0))
+
+    def _validate_numeric(self, P):
+        if P == "" or P == ".":
+            return True
+        try:
+            float(P)
+            return True
+        except ValueError:
+            return False
 
     def _go_dashboard(self):
         from ui.dashboard import Dashboard
