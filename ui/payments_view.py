@@ -16,6 +16,7 @@ class PaymentsView(ctk.CTkFrame):
         super().__init__(master, fg_color="#F1F4F9")
         self.user = user_context
         self.app = app_ref
+        self._after_ids = []
         
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -53,6 +54,21 @@ class PaymentsView(ctk.CTkFrame):
         )
         self.search_entry.pack(side="left", padx=10)
         self.search_entry.bind("<KeyRelease>", lambda e: self._refresh_customers())
+        
+        self.bind("<Destroy>", self._on_destroy)
+
+    def _on_destroy(self, event=None):
+        if event and event.widget == self:
+            for aid in self._after_ids[:]:
+                try: self.after_cancel(aid)
+                except Exception: pass
+            self._after_ids.clear()
+
+    def _safe_focus(self, widget):
+        try:
+            if self.winfo_exists() and widget and widget.winfo_exists():
+                widget.focus()
+        except: pass
 
     def _build_main_content(self):
         content = ctk.CTkFrame(self, fg_color="transparent")
@@ -269,8 +285,12 @@ class PaymentsView(ctk.CTkFrame):
         mode_var = ctk.StringVar(value="Cash")
         ctk.CTkOptionMenu(container, values=["Cash", "UPI", "Bank"], variable=mode_var, height=35, fg_color="#1B4F6B").pack(fill="x", pady=10)
         
-        dt_entry = ctk.CTkEntry(container, height=35, fg_color="#FFFFFF", border_color="#E2E8F0")
+        dt_entry = ctk.CTkEntry(
+            container, height=35, fg_color="#FFFFFF", border_color="#E2E8F0",
+            text_color="black"
+        )
         dt_entry.insert(0, datetime.date.today().strftime("%Y-%m-%d"))
+        dt_entry.configure(state="readonly")
         dt_entry.pack(fill="x", pady=10)
         
         def do_submit():

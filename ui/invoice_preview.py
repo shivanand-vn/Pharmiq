@@ -16,8 +16,19 @@ class InvoicePreviewFrame(ctk.CTkFrame):
         self.invoice = invoice
         self.pdf_path = pdf_path
         self._build_ui()
+        self._after_ids = []
         # Delay load slightly to ensure frame is mapped
-        self.after(100, self._load_pdf)
+        aid = self.after(100, self._load_pdf)
+        if aid: self._after_ids.append(aid)
+        
+        self.bind("<Destroy>", self._on_destroy)
+
+    def _on_destroy(self, event=None):
+        if event and event.widget == self:
+            for aid in self._after_ids[:]:
+                try: self.after_cancel(aid)
+                except Exception: pass
+            self._after_ids.clear()
 
     def _build_ui(self):
         # ── Top Toolbar ──

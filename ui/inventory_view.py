@@ -46,19 +46,22 @@ class InventoryView(ctk.CTkFrame):
 
         self._build_ui()
         self._load_data()
-        self.bind("<Destroy>", self._cleanup)
+        self.bind("<Destroy>", self._on_destroy)
 
-    def _cleanup(self, event=None):
-        if event.widget == self:
-            for aid in self._after_ids:
+    def _on_destroy(self, event=None):
+        if event and event.widget == self:
+            for aid in self._after_ids[:]:
                 try: self.after_cancel(aid)
                 except Exception: pass
             self._after_ids.clear()
             
     def _safe_focus(self, widget):
-        if self.winfo_exists() and widget and widget.winfo_exists():
-            try: widget.focus()
-            except Exception: pass
+        """Defensively attempt focus to prevent 'bad window path' errors."""
+        try:
+            if self.winfo_exists() and widget and widget.winfo_exists():
+                widget.focus()
+        except Exception:
+            pass
 
     def _build_ui(self):
         # -- Top bar --

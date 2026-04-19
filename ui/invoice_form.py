@@ -94,40 +94,45 @@ class InvoiceForm(ctk.CTkFrame):
         self.toplevel.bind("<Shift-Return>", self._on_shift_enter)
 
         # Unbind on destruction to prevent "bad window path" errors
-        self.bind("<Destroy>", self._cleanup)
+        self.bind("<Destroy>", self._on_destroy)
 
         # Autofocus customer search (safe check)
-        self._after_ids.append(self.after(200, self._initial_focus))
+        aid = self.after(300, self._initial_focus)
+        if aid: self._after_ids.append(aid)
 
     def _on_shift_enter(self, event=None):
         if self.winfo_exists():
             self._add_product_row()
 
-    def _cleanup(self, event=None):
-        # Only unbind if event is for this widget specifically
-        if event.widget == self:
-            # Cancel all pending after() tasks
-            for aid in self._after_ids:
-                try: self.after_cancel(aid)
-                except Exception: pass
-            self._after_ids.clear()
-
-            # Unbind the Shift+Return shortcut from toplevel
-            try:
-                self.toplevel.unbind("<Shift-Return>")
-            except Exception:
-                pass
+    def _on_destroy(self, event=None):
+        """Handle component destruction by cancelling all pending tasks."""
+        if event and event.widget == self:
+            # 1. Cancel all tasks
+            if hasattr(self, "_after_ids"):
+                for aid in self._after_ids[:]:
+                    try:
+                        self.after_cancel(aid)
+                    except Exception:
+                        pass
+                self._after_ids.clear()
+            
+            # 2. Unbind shortcuts
+            if hasattr(self, "toplevel"):
+                try:
+                    self.toplevel.unbind("<Shift-Return>")
+                except Exception:
+                    pass
 
     def _initial_focus(self):
         self._safe_focus(self.cust_search)
 
     def _safe_focus(self, widget):
-        """Safely focus a widget wrapping in try-except to prevent TclError crashes."""
-        if self.winfo_exists() and widget and widget.winfo_exists():
-            try:
+        """Defensively attempt focus to prevent 'bad window path' errors."""
+        try:
+            if self.winfo_exists() and widget and widget.winfo_exists():
                 widget.focus()
-            except Exception:
-                pass
+        except Exception:
+            pass # Suppress TclErrors from stale widgets
 
     # ─────────────────────────────────────────────────────────────
     #  HEADER (Invoice Details)
@@ -614,7 +619,7 @@ class InvoiceForm(ctk.CTkFrame):
 
         def _on_blur(event=None):
             aid = self.after(100, lambda: self._check_cal_focus(popup))
-            self._after_ids.append(aid)
+            if aid: self._after_ids.append(aid)
 
         popup.bind("<FocusOut>", _on_blur)
 
