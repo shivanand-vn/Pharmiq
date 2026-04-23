@@ -453,90 +453,46 @@ class Dashboard(ctk.CTkFrame):
 
     # Sidebar Navigation Handlers
     def _go_dashboard(self):
-        # Refresh current dashboard
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        dashboard = Dashboard(self.master, self.user, self.app)
-        dashboard.pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")
 
     def _go_customers(self):
-        from ui.customer_view import CustomerView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = CustomerView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("CustomerView")
 
     def _go_products(self):
-        self._go_inventory()
+        self.app.switch_view("InventoryView")
 
     def _go_invoices(self):
-        self._new_invoice()
+        self.app.switch_view("InvoiceForm")
 
     def _go_inventory(self):
-        from ui.inventory_view import InventoryView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = InventoryView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("InventoryView")
 
     def _go_returns(self):
-        from ui.returns_view import ReturnsView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = ReturnsView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("ReturnsView")
 
     def _go_invoice_history(self):
-        from ui.invoice_history_view import InvoiceHistoryView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = InvoiceHistoryView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("InvoiceHistoryView")
 
     def _go_payments(self):
-        from ui.payments_view import PaymentsView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = PaymentsView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("PaymentsView")
 
     def _new_invoice(self):
-        from ui.invoice_form import InvoiceForm
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        form = InvoiceForm(self.master, self.user, self.distributor, self.app)
-        form.pack(fill="both", expand=True)
+        self.app.switch_view("InvoiceForm")
 
     def _add_stock(self):
-        from ui.inventory_view import InventoryView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = InventoryView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("InventoryView")
 
     def _add_party(self):
-        from ui.add_party_form import AddPartyForm
-        for widget in self.winfo_children():
-            widget.destroy()
-        form = AddPartyForm(self.master, self.user, self.app)
-        form.pack(fill="both", expand=True)
+        messagebox.showinfo("Add Party", "Coming soon!")
 
     def _show_history(self):
-        messagebox.showinfo("Invoice History", "Invoice history view coming soon!")
+        self.app.switch_view("InvoiceHistoryView")
 
     def _show_reports(self):
-        from ui.reports_view import ReportsView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = ReportsView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("ReportsView")
         
     def _show_users(self):
-        from ui.user_view import UserView
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        view = UserView(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("UserView")
         
     def _show_settings(self):
         messagebox.showinfo("Settings", "Settings coming soon!")

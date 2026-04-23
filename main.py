@@ -38,6 +38,7 @@ class PharmIQApp(ctk.CTk):
         # App state
         self.current_user = None
         self.current_frame = None
+        self.cached_views = {}
 
         # CustomTkinter appearance
         ctk.set_appearance_mode("dark")
@@ -88,11 +89,49 @@ class PharmIQApp(ctk.CTk):
 
     def show_dashboard(self):
         """Refresh dashboard."""
-        if self.current_user:
-            if self.current_frame:
-                self.current_frame.destroy()
-            self.current_frame = Dashboard(self, self.current_user, self)
-            self.current_frame.pack(fill="both", expand=True)
+        self.switch_view("Dashboard")
+
+    def switch_view(self, view_name, **kwargs):
+        """Switch to a cached view or create a new one."""
+        if self.current_frame:
+            self.current_frame.pack_forget()
+
+        if view_name not in self.cached_views:
+            if view_name == "Dashboard":
+                from ui.dashboard import Dashboard
+                self.cached_views[view_name] = Dashboard(self, self.current_user, self)
+            elif view_name == "CustomerView":
+                from ui.customer_view import CustomerView
+                self.cached_views[view_name] = CustomerView(self, self.current_user, self)
+            elif view_name == "InventoryView":
+                from ui.inventory_view import InventoryView
+                self.cached_views[view_name] = InventoryView(self, self.current_user, self)
+            elif view_name == "ReturnsView":
+                from ui.returns_view import ReturnsView
+                self.cached_views[view_name] = ReturnsView(self, self.current_user, self)
+            elif view_name == "InvoiceHistoryView":
+                from ui.invoice_history_view import InvoiceHistoryView
+                self.cached_views[view_name] = InvoiceHistoryView(self, self.current_user, self)
+            elif view_name == "PaymentsView":
+                from ui.payments_view import PaymentsView
+                self.cached_views[view_name] = PaymentsView(self, self.current_user, self)
+            elif view_name == "InvoiceForm":
+                from ui.invoice_form import InvoiceForm
+                from models.distributor import get_distributor_by_id
+                distributor = get_distributor_by_id(self.current_user["distributor_id"])
+                self.cached_views[view_name] = InvoiceForm(self, self.current_user, distributor, self)
+            elif view_name == "ReportsView":
+                from ui.reports_view import ReportsView
+                self.cached_views[view_name] = ReportsView(self, self.current_user, self)
+            elif view_name == "UserView":
+                from ui.user_view import UserView
+                self.cached_views[view_name] = UserView(self, self.current_user, self)
+
+        self.current_frame = self.cached_views[view_name]
+        self.current_frame.pack(fill="both", expand=True)
+
+        if hasattr(self.current_frame, '_load_data') and view_name != "Dashboard":
+            self.current_frame._load_data()
 
 
 def main():
