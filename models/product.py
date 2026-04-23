@@ -30,7 +30,7 @@ def search_products(distributor_id, query=""):
           AND b.quantity > 0
           AND (m.name LIKE %s OR b.batch_number LIKE %s)
         ORDER BY b.expiry_date ASC, m.name ASC
-        LIMIT 30
+        LIMIT 50
         """,
         (distributor_id, like_q, like_q),
     )
@@ -101,6 +101,7 @@ def get_all_products_for_distributor(distributor_id):
         JOIN medicines m ON m.medicine_id = b.medicine_id
         WHERE b.distributor_id = %s AND b.quantity > 0
         ORDER BY m.name, b.expiry_date
+        LIMIT 50
         """,
         (distributor_id,),
     )
@@ -130,6 +131,7 @@ def get_inventory_list(distributor_id, search_q=""):
         WHERE b.distributor_id = %s
           AND (m.name LIKE %s OR b.batch_number LIKE %s)
         ORDER BY b.expiry_date ASC, m.name ASC
+        LIMIT 50
         """,
         (distributor_id, like_q, like_q),
     )

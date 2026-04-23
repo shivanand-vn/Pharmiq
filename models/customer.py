@@ -41,7 +41,7 @@ def search_customers(distributor_id, query=""):
         WHERE distributor_id = %s AND status = 'active'
           AND (shop_name LIKE %s OR license_holder_name LIKE %s OR license_no LIKE %s OR mobile_no LIKE %s)
         ORDER BY shop_name
-        LIMIT 20
+        LIMIT 50
         """,
         (distributor_id, like_q, like_q, like_q, like_q),
     )
@@ -57,6 +57,7 @@ def get_all_customers(distributor_id):
         FROM customers
         WHERE distributor_id = %s AND status = 'active'
         ORDER BY shop_name
+        LIMIT 50
         """,
         (distributor_id,),
     )

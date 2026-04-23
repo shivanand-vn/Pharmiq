@@ -71,7 +71,7 @@ def get_inventory_report(distributor_id, medicine_name=None):
     Fields: Medicine Name, Batch Number, Available Quantity, Expiry Date, Purchase Price, Selling Price.
     """
     query = """
-        SELECT m.name as medicine_name, b.batch_no, b.quantity as available_quantity,
+        SELECT m.name as medicine_name, b.batch_number as batch_no, b.quantity as available_quantity,
                b.expiry_date, b.purchase_price as cost_price, m.trp, m.mrp
         FROM inventory_batches b
         LEFT JOIN medicines m ON b.medicine_id = m.medicine_id
@@ -91,7 +91,7 @@ def get_inventory_report(distributor_id, medicine_name=None):
     except (Exception) as e:
         # Fallback schema query:
         fallback_query = """
-            SELECT m.name as medicine_name, b.batch_no, b.quantity as available_quantity,
+            SELECT m.name as medicine_name, b.batch_number as batch_no, b.quantity as available_quantity,
                    b.expiry_date, b.purchase_price as cost_price, m.trp, m.mrp
             FROM inventory_batches b
             JOIN medicines m ON b.medicine_id = m.medicine_id
@@ -122,8 +122,8 @@ def get_expiry_report(distributor_id, days=30, medicine_name=None):
     params.append(cutoff_date)
 
     query = """
-        SELECT m.name as medicine_name, b.batch_no, b.expiry_date, b.quantity
-        FROM batches b
+        SELECT m.name as medicine_name, b.batch_number as batch_no, b.expiry_date, b.quantity
+        FROM inventory_batches b
         JOIN medicines m ON b.medicine_id = m.medicine_id
         WHERE b.distributor_id = %s AND b.expiry_date <= %s AND b.quantity > 0
     """
@@ -143,13 +143,13 @@ def get_returns_report(distributor_id, from_date=None, to_date=None, customer_na
     query = """
         SELECT r.return_id, i.invoice_no as invoice_reference, ii.product_name as medicine_name, 
                ri.batch_id, ri.quantity as quantity_returned, r.return_date, 
-               b.batch_no
+               b.batch_number as batch_no
         FROM returns r
         JOIN return_items ri ON r.return_id = ri.return_id
         JOIN invoice_items ii ON ri.invoice_item_id = ii.item_id
         JOIN invoices i ON r.invoice_no = i.invoice_no
         JOIN customers c ON r.customer_license_no = c.license_no
-        LEFT JOIN batches b ON ri.batch_id = b.batch_id
+        LEFT JOIN inventory_batches b ON ri.batch_id = b.batch_id
         WHERE i.distributor_id = %s
     """
     params = [distributor_id]

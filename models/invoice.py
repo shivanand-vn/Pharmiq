@@ -161,7 +161,7 @@ def search_invoice_history(distributor_id, query=""):
         WHERE i.distributor_id = %s
           AND (i.invoice_no LIKE %s OR c.shop_name LIKE %s OR c.license_no LIKE %s OR c.gst_no LIKE %s)
         ORDER BY i.created_at DESC
-        LIMIT 100
+        LIMIT 50
         """,
         (distributor_id, like_q, like_q, like_q, like_q),
     )
