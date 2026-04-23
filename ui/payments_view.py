@@ -10,6 +10,7 @@ from models.payment import (
     get_customer_payment_summary, get_invoices_for_customer,
     get_payment_history, record_payment
 )
+from utils.async_db import async_db_call
 
 class PaymentsView(ctk.CTkFrame):
     def __init__(self, master, user_context, app_ref):
@@ -118,56 +119,63 @@ class PaymentsView(ctk.CTkFrame):
         for w in self.scroll_frame.winfo_children():
             w.destroy()
             
-        try:
-            customers = get_customer_payment_summary(self.user["distributor_id"])
-        except:
-            customers = []
+        def fetch_data():
+            return get_customer_payment_summary(self.user["distributor_id"])
+            
+        def on_success(result):
+            customers = result
 
-        query = self.search_entry.get().lower()
-        if query:
-            customers = [c for c in customers if query in c["shop_name"].lower()]
+            query = self.search_entry.get().lower()
+            if query:
+                customers = [c for c in customers if query in c["shop_name"].lower()]
 
-        for c in customers:
-            row = ctk.CTkFrame(self.scroll_frame, fg_color="transparent", height=55)
-            row.pack(fill="x", pady=2)
-            row.pack_propagate(False)
-            
-            # Hover effect
-            def on_enter(e, r=row): r.configure(fg_color="#F8FAFC")
-            def on_leave(e, r=row): r.configure(fg_color="transparent")
-            row.bind("<Enter>", on_enter)
-            row.bind("<Leave>", on_leave)
+            for c in customers:
+                row = ctk.CTkFrame(self.scroll_frame, fg_color="transparent", height=55)
+                row.pack(fill="x", pady=2)
+                row.pack_propagate(False)
+                
+                # Hover effect
+                def on_enter(e, r=row): r.configure(fg_color="#F8FAFC")
+                def on_leave(e, r=row): r.configure(fg_color="transparent")
+                row.bind("<Enter>", on_enter)
+                row.bind("<Leave>", on_leave)
 
-            ctk.CTkLabel(row, text=c["shop_name"], width=280, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color="black").pack(side="left", padx=15)
-            
-            ctk.CTkLabel(row, text=f"₹{float(c['total_paid']):,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14), text_color="#10B981").pack(side="left", padx=15)
-            
-            balance = float(c['outstanding_balance'])
-            balance_color = "#E11D48" if balance > 0 else "#10B981"
-            ctk.CTkLabel(row, text=f"₹{balance:,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color=balance_color).pack(side="left", padx=15)
-            
-            ctk.CTkLabel(row, text=f"₹{float(c['total_invoiced']):,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14), text_color="#1B4F6B").pack(side="left", padx=15)
-            
-            # Actions
-            btn_frame = ctk.CTkFrame(row, fg_color="transparent", width=180)
-            btn_frame.pack(side="left", padx=15)
-            # Logs Button
-            ctk.CTkButton(
-                btn_frame, text="Logs", width=65, height=30,
-                fg_color="#F1F5F9", text_color="#475569", hover_color="#E2E8F0", corner_radius=8,
-                font=ctk.CTkFont(size=12, weight="bold"),
-                command=lambda cust=c: self._update_panel(cust, "logs")
-            ).pack(side="left", padx=(0, 5))
-            
-            # Pay Button
-            ctk.CTkButton(
-                btn_frame, text="Pay", width=65, height=30,
-                fg_color="#1B4F6B", hover_color="#0F364A", corner_radius=8,
-                font=ctk.CTkFont(size=12, weight="bold"),
-                command=lambda cust=c: self._update_panel(cust, "pay")
-            ).pack(side="left")
+                ctk.CTkLabel(row, text=c["shop_name"], width=280, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color="black").pack(side="left", padx=15)
+                
+                ctk.CTkLabel(row, text=f"₹{float(c['total_paid']):,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14), text_color="#10B981").pack(side="left", padx=15)
+                
+                balance = float(c['outstanding_balance'])
+                balance_color = "#E11D48" if balance > 0 else "#10B981"
+                ctk.CTkLabel(row, text=f"₹{balance:,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14, weight="bold"), text_color=balance_color).pack(side="left", padx=15)
+                
+                ctk.CTkLabel(row, text=f"₹{float(c['total_invoiced']):,.2f}", width=100, anchor="w", font=ctk.CTkFont(size=14), text_color="#1B4F6B").pack(side="left", padx=15)
+                
+                # Actions
+                btn_frame = ctk.CTkFrame(row, fg_color="transparent", width=180)
+                btn_frame.pack(side="left", padx=15)
+                # Logs Button
+                ctk.CTkButton(
+                    btn_frame, text="Logs", width=65, height=30,
+                    fg_color="#F1F5F9", text_color="#475569", hover_color="#E2E8F0", corner_radius=8,
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    command=lambda cust=c: self._update_panel(cust, "logs")
+                ).pack(side="left", padx=(0, 5))
+                
+                # Pay Button
+                ctk.CTkButton(
+                    btn_frame, text="Pay", width=65, height=30,
+                    fg_color="#1B4F6B", hover_color="#0F364A", corner_radius=8,
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    command=lambda cust=c: self._update_panel(cust, "pay")
+                ).pack(side="left")
 
-            ctk.CTkFrame(self.scroll_frame, fg_color="#F1F5F9", height=1).pack(fill="x", padx=10)
+                ctk.CTkFrame(self.scroll_frame, fg_color="#F1F5F9", height=1).pack(fill="x", padx=10)
+
+        def on_error(e):
+            print(f"Error loading customers: {e}")
+            pass
+
+        async_db_call(self, fetch_data, (), on_success, on_error)
 
     def _build_card(self, title, icon):
         card = ctk.CTkFrame(self.side_panel, fg_color="#FFFFFF", corner_radius=15, border_width=1, border_color="#E2E8F0")
@@ -328,8 +336,4 @@ class PaymentsView(ctk.CTkFrame):
             return False
 
     def _go_dashboard(self):
-        from ui.dashboard import Dashboard
-        for w in self.master.winfo_children():
-            w.destroy()
-        view = Dashboard(self.master, self.user, self.app)
-        view.pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")

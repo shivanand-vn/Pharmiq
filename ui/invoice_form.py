@@ -754,6 +754,4 @@ class InvoiceForm(ctk.CTkFrame):
         self._recalculate_totals()
 
     def _go_back(self):
-        from ui.dashboard import Dashboard
-        for widget in self.master.winfo_children(): widget.destroy()
-        Dashboard(self.master, self.user, self.app).pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")

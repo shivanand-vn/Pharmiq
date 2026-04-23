@@ -15,6 +15,7 @@ from models.product import (
     update_medicine_pricing
 )
 from db.connection import execute_query, fetch_all
+from utils.async_db import async_db_call
 
 # -- Colour palette --
 BG_DARK = "#F8F9FA"
@@ -270,12 +271,21 @@ class InventoryView(ctk.CTkFrame):
         self._validate_form()
 
     def _load_data(self):
+        # Safely show loading state — the label may have been destroyed by _apply_filters
         try:
-            self.inventory_data = get_inventory_list(self.user["distributor_id"])
-            
-            self.medicines = fetch_all("SELECT medicine_id, name, trp, mrp FROM medicines ORDER BY name")
-            self.suppliers = fetch_all("SELECT supplier_id, name FROM suppliers WHERE distributor_id = %s ORDER BY name", (self.user["distributor_id"],))
+            if self.loading_lbl.winfo_exists():
+                self.loading_lbl.configure(text="Loading inventory...", text_color=TEXT_MUTED)
+        except Exception:
+            pass
+        
+        def fetch_data():
+            inv_data = get_inventory_list(self.user["distributor_id"])
+            meds = fetch_all("SELECT medicine_id, name, trp, mrp FROM medicines ORDER BY name")
+            sups = fetch_all("SELECT supplier_id, name FROM suppliers WHERE distributor_id = %s ORDER BY name", (self.user["distributor_id"],))
+            return inv_data, meds, sups
 
+        def on_success(result):
+            self.inventory_data, self.medicines, self.suppliers = result
             med_names = [m["name"] for m in self.medicines]
             sup_names = [s["name"] for s in self.suppliers]
             
@@ -283,8 +293,15 @@ class InventoryView(ctk.CTkFrame):
             self.field_frames["supplier"]["widget"].configure(values=sup_names)
 
             self._apply_filters()
-        except Exception as e:
-            self.loading_lbl.configure(text=f"Error: {e}", text_color=DANGER)
+
+        def on_error(e):
+            try:
+                if self.loading_lbl.winfo_exists():
+                    self.loading_lbl.configure(text=f"Error: {e}", text_color=DANGER)
+            except Exception:
+                pass
+
+        async_db_call(self, fetch_data, (), on_success, on_error)
 
     def _validate_form(self):
         errors = []
@@ -508,7 +525,5 @@ class InventoryView(ctk.CTkFrame):
         self.save_btn.configure(state="disabled")
 
     def _go_back(self):
-        from ui.dashboard import Dashboard
-        for widget in self.master.winfo_children(): widget.destroy()
-        Dashboard(self.master, self.user, self.app).pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")
 

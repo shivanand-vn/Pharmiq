@@ -247,6 +247,4 @@ class ReturnsView(ctk.CTkFrame):
             messagebox.showerror("Error", f"Failed to process return: {e}")
 
     def _go_back(self):
-        from ui.dashboard import Dashboard
-        for widget in self.master.winfo_children(): widget.destroy()
-        Dashboard(self.master, self.user, self.app).pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")

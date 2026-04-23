@@ -8,6 +8,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 import re
 from models.customer import search_customers, create_customer, update_customer, toggle_customer_status, check_gst_exists
+from utils.async_db import async_db_call
 
 # ── Colour palette ──
 BG_DARK = "#F8F9FA"
@@ -60,6 +61,7 @@ class CustomerView(ctk.CTkFrame):
         self._search_job = None
         self._after_ids = []
         self._validation_state = {}
+        self._row_pool = []
 
         self._build_ui()
         self._load_data()
@@ -333,28 +335,17 @@ class CustomerView(ctk.CTkFrame):
     # ──────────────────────────────────────────────
     def _bind_validation(self):
         """Bind real-time validation to all fields."""
-        self.f_license.bind("<KeyRelease>", lambda e: self._validate_license())
         self.f_license.bind("<FocusOut>", lambda e: self._validate_license())
-        self.f_gst.bind("<KeyRelease>", lambda e: self._validate_gst())
         self.f_gst.bind("<FocusOut>", lambda e: self._validate_gst())
-        self.f_shop_name.bind("<KeyRelease>", lambda e: self._validate_name())
         self.f_shop_name.bind("<FocusOut>", lambda e: self._validate_name())
-        self.f_owner_name.bind("<KeyRelease>", lambda e: self._validate_owner())
         self.f_owner_name.bind("<FocusOut>", lambda e: self._validate_owner())
-        self.f_mobile.bind("<KeyRelease>", lambda e: self._validate_mobile())
         self.f_mobile.bind("<FocusOut>", lambda e: self._validate_mobile())
-        self.f_email.bind("<KeyRelease>", lambda e: self._validate_email())
         self.f_email.bind("<FocusOut>", lambda e: self._validate_email())
-        self.f_addr1.bind("<KeyRelease>", lambda e: self._validate_addr1())
         self.f_addr1.bind("<FocusOut>", lambda e: self._validate_addr1())
-        self.f_city.bind("<KeyRelease>", lambda e: self._validate_city())
         self.f_city.bind("<FocusOut>", lambda e: self._validate_city())
-        self.f_dist.bind("<KeyRelease>", lambda e: self._validate_dist())
         self.f_dist.bind("<FocusOut>", lambda e: self._validate_dist())
-        self.f_pincode.bind("<KeyRelease>", lambda e: self._validate_pincode())
         self.f_pincode.bind("<FocusOut>", lambda e: self._validate_pincode())
         self.f_state.bind("<<ComboboxSelected>>", lambda e: self._validate_state())
-        self.f_state.bind("<KeyRelease>", lambda e: self._validate_state())
         self.f_state.bind("<FocusOut>", lambda e: self._validate_state())
 
         # Auto-uppercase license and GST
@@ -618,55 +609,71 @@ class CustomerView(ctk.CTkFrame):
     # ──────────────────────────────────────────────
     def _load_data(self):
         query = self.search_var.get().strip()
-        try:
-            customers = search_customers(self.user["distributor_id"], query)
-        except Exception as e:
-            customers = []
-            print(f"Error loading customers: {e}")
+        
+        # Hide existing rows
+        for item in self._row_pool:
+            item["frame"].grid_forget()
+            
+        if not hasattr(self, '_loading_lbl'):
+            self._loading_lbl = ctk.CTkLabel(self.scroll, text="Loading...", font=ctk.CTkFont(size=13), text_color=TEXT_MUTED)
+        self._loading_lbl.grid(row=0, column=0, pady=40)
+        if hasattr(self, '_no_data_lbl') and self._no_data_lbl.winfo_exists():
+            self._no_data_lbl.grid_forget()
 
-        # Clear previous rows
-        for widget in self.scroll.winfo_children():
-            widget.destroy()
+        async_db_call(
+            self,
+            search_customers,
+            (self.user["distributor_id"], query),
+            success_callback=self._on_data_loaded,
+            error_callback=lambda e: print(f"Error loading customers: {e}")
+        )
+
+    def _on_data_loaded(self, customers):
+        if hasattr(self, '_loading_lbl') and self._loading_lbl.winfo_exists():
+            self._loading_lbl.grid_forget()
 
         if not customers:
-            ctk.CTkLabel(self.scroll, text="No active customers found.",
-                         font=ctk.CTkFont(size=13), text_color=TEXT_MUTED).pack(pady=40)
+            if not hasattr(self, '_no_data_lbl'):
+                self._no_data_lbl = ctk.CTkLabel(self.scroll, text="No active customers found.", font=ctk.CTkFont(size=13), text_color=TEXT_MUTED)
+            self._no_data_lbl.grid(row=0, column=0, pady=40)
             return
 
-        # Grid Layout for Row Placement (Fixed spacing issue)
         self.scroll.grid_columnconfigure(0, weight=1)
-        
         cols = [("license_no", 140), ("gst_no", 150), ("shop_name", 220), ("mobile_no", 110), ("city", 100)]
 
-        for idx, row in enumerate(customers):
+        # Expand pool if needed
+        while len(self._row_pool) < len(customers):
+            idx = len(self._row_pool)
             bg = ROW_BG_1 if idx % 2 == 0 else ROW_BG_2
-            
-            # Excel-like row height (26px)
             frame = ctk.CTkFrame(self.scroll, fg_color=bg, height=26, corner_radius=0)
-            frame.grid(row=idx, column=0, sticky="ew", pady=0)
             
-            # Data Columns
+            labels = {}
             for i, (key, w) in enumerate(cols):
                 frame.columnconfigure(i, weight=1 if key == "shop_name" else 0)
-                val = str(row.get(key) or "N/A")[:30]
-                ctk.CTkLabel(
-                    frame, text=val, width=w, height=26, font=ctk.CTkFont(size=11),
-                    text_color="#000000", anchor="w"
-                ).grid(row=0, column=i, sticky="nsew", padx=0)
-
-            # Actions
+                lbl = ctk.CTkLabel(frame, text="", width=w, height=26, font=ctk.CTkFont(size=11), text_color="#000000", anchor="w")
+                lbl.grid(row=0, column=i, sticky="nsew", padx=0)
+                labels[key] = lbl
+                
             action_frame = ctk.CTkFrame(frame, width=140, height=26, fg_color=bg)
             action_frame.grid(row=0, column=5, sticky="nsew", padx=0, pady=0)
             action_frame.pack_propagate(False)
+            
+            edit_btn = ctk.CTkButton(action_frame, text="Edit", width=55, height=18, font=ctk.CTkFont(size=10, weight="bold"), corner_radius=4, fg_color="#DBEAFE", hover_color="#BFDBFE", text_color="#1E3A8A")
+            edit_btn.pack(side="left", padx=(0, 5), pady=4)
+            
+            self._row_pool.append({"frame": frame, "labels": labels, "btn": edit_btn})
 
-            ctk.CTkButton(
-                action_frame, text="Edit", width=55, height=18,
-                font=ctk.CTkFont(size=10, weight="bold"), corner_radius=4,
-                fg_color="#DBEAFE", hover_color="#BFDBFE", text_color="#1E3A8A",
-                command=lambda r=row: self._start_edit(r)
-            ).pack(side="left", padx=(0, 5), pady=4)
+        # Render rows
+        for idx, row in enumerate(customers):
+            pool_item = self._row_pool[idx]
+            pool_item["frame"].grid(row=idx, column=0, sticky="ew", pady=0)
+            
+            for key, _ in cols:
+                val = str(row.get(key) or "N/A")[:30]
+                pool_item["labels"][key].configure(text=val)
+                
+            pool_item["btn"].configure(command=lambda r=row: self._start_edit(r))
 
-        # Force all rows to the top using a spacer weight
         self.scroll.grid_rowconfigure(len(customers), weight=1)
 
 
@@ -817,8 +824,4 @@ class CustomerView(ctk.CTkFrame):
                     messagebox.showerror("Error", f"Could not deactivate customer: {e}")
 
     def _go_back(self):
-        from ui.dashboard import Dashboard
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        dashboard = Dashboard(self.master, self.user, self.app)
-        dashboard.pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")

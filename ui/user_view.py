@@ -6,6 +6,7 @@ import customtkinter as ctk
 import re
 from tkinter import messagebox
 from models.user import get_all_users_with_roles, update_user_status, create_user, update_user
+from utils.async_db import async_db_call
 
 # ── Colour palette ──
 BG_DARK = "#F8F9FA"
@@ -306,74 +307,82 @@ class UserView(ctk.CTkFrame):
             self.save_btn.configure(state="normal", fg_color=SUCCESS, hover_color="#059669")
 
     def _load_data(self):
-        try:
-            self.all_users = get_all_users_with_roles(self.user["distributor_id"])
-        except Exception as e:
-            self.all_users = []
-            
-        if hasattr(self, 'loading_lbl') and self.loading_lbl.winfo_exists():
-            self.loading_lbl.destroy()
-
+        # Clear previous rows from the scroll, safely
         for widget in self.scroll.winfo_children():
-            widget.destroy()
-
-        if not self.all_users:
-            ctk.CTkLabel(self.scroll, text="No users found.", font=ctk.CTkFont(size=13), text_color=TEXT_MUTED).pack(pady=40)
-            return
-
-        for row in self.all_users:
-            frame = ctk.CTkFrame(self.scroll, fg_color="transparent", height=45)
-            frame.pack(fill="x", pady=2)
-            frame.pack_propagate(False)
-            ctk.CTkFrame(self.scroll, fg_color="#F3F4F6", height=1).pack(fill="x", padx=10)
-
-            user_id = row.get("user_id")
-            username = str(row.get("username", ""))
-            roles_str = ", ".join(row.get("roles", [])) or "No Role"
-            status = str(row.get("status", "active"))
-
-            st_color = SUCCESS if status.lower() == "active" else DANGER
-
-            vals = [
-                (f"U_{user_id:03d}", 80, TEXT_DARK),
-                (username, 150, TEXT_DARK),
-                (roles_str, 150, "#4B5563"),
-                (status.title(), 100, st_color)
-            ]
-
-            for val, w, color in vals:
-                ctk.CTkLabel(
-                    frame, text=val, width=w, font=ctk.CTkFont(size=12, weight="bold" if w==100 else "normal"),
-                    text_color=color, anchor="w"
-                ).pack(side="left", padx=5)
-
-            # Actions
-            action_frame = ctk.CTkFrame(frame, width=160, fg_color="transparent")
-            action_frame.pack_propagate(False)
-            action_frame.pack(side="left", padx=5, pady=5)
+            try:
+                widget.destroy()
+            except Exception:
+                pass
+                
+        def fetch_users():
+            return get_all_users_with_roles(self.user["distributor_id"])
             
-            ctk.CTkButton(
-                action_frame, text="✎", width=36, height=28,
-                font=ctk.CTkFont(size=12, weight="bold"), corner_radius=6,
-                fg_color="#DBEAFE", hover_color="#BFDBFE", text_color="#1E3A8A",
-                command=lambda r=row: self._start_edit(r)
-            ).pack(side="left", padx=(0, 4))
-            
-            if user_id != self.user.get("user_id"):
-                if status.lower() == "active":
-                    ctk.CTkButton(
-                        action_frame, text="Deactivate", width=95, height=28,
-                        font=ctk.CTkFont(size=10, weight="bold"), corner_radius=6,
-                        fg_color="#FEE2E2", hover_color="#FECACA", text_color="#991B1B",
-                        command=lambda u=user_id: self._toggle_status(u, "inactive")
-                    ).pack(side="left")
-                else:
-                    ctk.CTkButton(
-                        action_frame, text="Activate", width=95, height=28,
-                        font=ctk.CTkFont(size=10, weight="bold"), corner_radius=6,
-                        fg_color="#D1FAE5", hover_color="#A7F3D0", text_color="#065F46",
-                        command=lambda u=user_id: self._toggle_status(u, "active")
-                    ).pack(side="left")
+        def on_success(result):
+            self.all_users = result
+
+            if not self.all_users:
+                ctk.CTkLabel(self.scroll, text="No users found.", font=ctk.CTkFont(size=13), text_color=TEXT_MUTED).pack(pady=40)
+                return
+
+            for row in self.all_users:
+                frame = ctk.CTkFrame(self.scroll, fg_color="transparent", height=45)
+                frame.pack(fill="x", pady=2)
+                frame.pack_propagate(False)
+                ctk.CTkFrame(self.scroll, fg_color="#F3F4F6", height=1).pack(fill="x", padx=10)
+
+                user_id = row.get("user_id")
+                username = str(row.get("username", ""))
+                roles_str = ", ".join(row.get("roles", [])) or "No Role"
+                status = str(row.get("status", "active"))
+
+                st_color = SUCCESS if status.lower() == "active" else DANGER
+
+                vals = [
+                    (f"U_{user_id:03d}", 80, TEXT_DARK),
+                    (username, 150, TEXT_DARK),
+                    (roles_str, 150, "#4B5563"),
+                    (status.title(), 100, st_color)
+                ]
+
+                for val, w, color in vals:
+                    ctk.CTkLabel(
+                        frame, text=val, width=w, font=ctk.CTkFont(size=12, weight="bold" if w==100 else "normal"),
+                        text_color=color, anchor="w"
+                    ).pack(side="left", padx=5)
+
+                # Actions
+                action_frame = ctk.CTkFrame(frame, width=160, fg_color="transparent")
+                action_frame.pack_propagate(False)
+                action_frame.pack(side="left", padx=5, pady=5)
+                
+                ctk.CTkButton(
+                    action_frame, text="✎", width=36, height=28,
+                    font=ctk.CTkFont(size=12, weight="bold"), corner_radius=6,
+                    fg_color="#DBEAFE", hover_color="#BFDBFE", text_color="#1E3A8A",
+                    command=lambda r=row: self._start_edit(r)
+                ).pack(side="left", padx=(0, 4))
+                
+                if user_id != self.user.get("user_id"):
+                    if status.lower() == "active":
+                        ctk.CTkButton(
+                            action_frame, text="Deactivate", width=95, height=28,
+                            font=ctk.CTkFont(size=10, weight="bold"), corner_radius=6,
+                            fg_color="#FEE2E2", hover_color="#FECACA", text_color="#991B1B",
+                            command=lambda u=user_id: self._toggle_status(u, "inactive")
+                        ).pack(side="left")
+                    else:
+                        ctk.CTkButton(
+                            action_frame, text="Activate", width=95, height=28,
+                            font=ctk.CTkFont(size=10, weight="bold"), corner_radius=6,
+                            fg_color="#D1FAE5", hover_color="#A7F3D0", text_color="#065F46",
+                            command=lambda u=user_id: self._toggle_status(u, "active")
+                        ).pack(side="left")
+
+        def on_error(e):
+            self.all_users = []
+            ctk.CTkLabel(self.scroll, text=f"Failed to load users: {e}", font=ctk.CTkFont(size=13), text_color=DANGER).pack(pady=40)
+                        
+        async_db_call(self, fetch_users, (), on_success, on_error)
 
     def _start_edit(self, row):
         self._clear_form()
@@ -458,7 +467,4 @@ class UserView(ctk.CTkFrame):
                 messagebox.showerror("Error", f"Could not {action} user: {e}")
 
     def _go_back(self):
-        from ui.dashboard import Dashboard
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        Dashboard(self.master, self.user, self.app).pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")

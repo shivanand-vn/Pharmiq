@@ -13,6 +13,7 @@ from models.report import (
     get_inventory_report, get_expiry_report, get_returns_report
 )
 from utils.export_reports import export_to_excel, export_to_pdf
+from utils.async_db import async_db_call
 
 class ReportsView(ctk.CTkFrame):
     """Main panel for generating and viewing reports."""
@@ -43,6 +44,7 @@ class ReportsView(ctk.CTkFrame):
         
         # Initialize default view
         self._on_report_type_change()
+        self._load_filter_data()
 
     def _show_access_denied(self):
         err_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -130,14 +132,16 @@ class ReportsView(ctk.CTkFrame):
         self.customer_frame = ctk.CTkFrame(self.bot_row, fg_color="transparent")
         self.customer_frame.pack(side="left", padx=(0, 15))
         ctk.CTkLabel(self.customer_frame, text="Customer:", text_color="#374151").pack(side="left", padx=5)
-        self.customer_entry = ctk.CTkEntry(self.customer_frame, width=150, placeholder_text="Search Name...", fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
+        self.customer_entry = ctk.CTkComboBox(self.customer_frame, width=150, values=[""], fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
+        self.customer_entry.set("")
         self.customer_entry.pack(side="left")
         
         # Medicine Filter
         self.medicine_frame = ctk.CTkFrame(self.bot_row, fg_color="transparent")
         self.medicine_frame.pack(side="left", padx=15)
         ctk.CTkLabel(self.medicine_frame, text="Medicine:", text_color="#374151").pack(side="left", padx=5)
-        self.medicine_entry = ctk.CTkEntry(self.medicine_frame, width=150, placeholder_text="Search Product...", fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
+        self.medicine_entry = ctk.CTkComboBox(self.medicine_frame, width=150, values=[""], fg_color="#F9FAFB", border_color="#E5E7EB", text_color="#1F2937")
+        self.medicine_entry.set("")
         self.medicine_entry.pack(side="left")
         
         # Status Filter
@@ -194,6 +198,29 @@ class ReportsView(ctk.CTkFrame):
             self.date_frame.pack(side="left", padx=15)
             self.customer_frame.pack(side="left", padx=(0, 15))
             self.medicine_frame.pack(side="left", padx=15)
+
+    def _load_filter_data(self):
+        from db.connection import fetch_all
+        
+        def fetch_filters():
+            custs = fetch_all("SELECT shop_name FROM customers WHERE distributor_id = %s ORDER BY shop_name", (self.distributor_id,))
+            meds = fetch_all("SELECT name FROM medicines ORDER BY name")
+            return custs, meds
+            
+        def on_success(result):
+            custs, meds = result
+            cust_names = [c["shop_name"] for c in custs]
+            med_names = [m["name"] for m in meds]
+            
+            if cust_names:
+                self.customer_entry.configure(values=cust_names)
+            if med_names:
+                self.medicine_entry.configure(values=med_names)
+                
+        def on_error(e):
+            print(f"Error loading filters in reports: {e}")
+            
+        async_db_call(self, fetch_filters, (), on_success, on_error)
 
     def _build_table_area(self):
         table_container = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=12)
@@ -302,38 +329,45 @@ class ReportsView(ctk.CTkFrame):
         self.btn_generate.configure(text="Generating...", state="disabled")
         self.update_idletasks() # Force UI update immediately
 
-        try:
+        def fetch_report():
             if rtype == "Sales Report":
-                data = get_sales_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, status=stat)
-                self.current_columns = ["Invoice No", "Date", "Customer Name", "Total Amount", "Status"]
-                
+                return get_sales_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, status=stat)
             elif rtype == "Detailed Invoice Report":
-                data = get_detailed_invoice_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, medicine_name=med)
-                self.current_columns = ["Invoice No", "Customer", "Medicine Name", "Batch No", "Qty", "Rate", "Total", "GST %"]
-                
+                return get_detailed_invoice_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, medicine_name=med)
             elif rtype == "Inventory / Stock Report":
-                data = get_inventory_report(self.distributor_id, medicine_name=med)
-                self.current_columns = ["Medicine Name", "Batch Number", "Available Qty", "Expiry Date", "TRP", "MRP"]
-                
+                return get_inventory_report(self.distributor_id, medicine_name=med)
             elif rtype == "Expiry Report":
                 try:
                     days = int(days_str) if days_str else 30
                 except:
                     days = 30
-                data = get_expiry_report(self.distributor_id, days=days, medicine_name=med)
-                self.current_columns = ["Medicine Name", "Batch Number", "Expiry Date", "Available Qty"]
-                
+                return get_expiry_report(self.distributor_id, days=days, medicine_name=med)
             elif rtype == "Return Report":
-                data = get_returns_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, medicine_name=med)
+                return get_returns_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, medicine_name=med)
+            return []
+
+        def on_success(result):
+            self.btn_generate.configure(text="Generate Preview", state="normal")
+            data = result
+            if rtype == "Sales Report":
+                self.current_columns = ["Invoice No", "Date", "Customer Name", "Total Amount", "Status"]
+            elif rtype == "Detailed Invoice Report":
+                self.current_columns = ["Invoice No", "Customer", "Medicine Name", "Batch No", "Qty", "Rate", "Total", "GST %"]
+            elif rtype == "Inventory / Stock Report":
+                self.current_columns = ["Medicine Name", "Batch Number", "Available Qty", "Expiry Date", "TRP", "MRP"]
+            elif rtype == "Expiry Report":
+                self.current_columns = ["Medicine Name", "Batch Number", "Expiry Date", "Available Qty"]
+            elif rtype == "Return Report":
                 self.current_columns = ["Return ID", "Invoice Ref", "Medicine Name", "Batch Number", "Returned Qty", "Return Date"]
                 
             self.fetched_data = data
             self._render_table(data, rtype)
-            
-        except Exception as e:
-            messagebox.showerror("Database Error", f"An error occurred while fetching the report:\n{str(e)}")
-        finally:
+
+        def on_error(e):
             self.btn_generate.configure(text="Generate Preview", state="normal")
+            messagebox.showerror("Database Error", f"An error occurred while fetching the report:\n{str(e)}")
+
+        async_db_call(self, fetch_report, (), on_success, on_error)
 
 
     def _render_table(self, data, rtype):
@@ -463,8 +497,4 @@ class ReportsView(ctk.CTkFrame):
                 messagebox.showerror("Export Failed", f"Could not save PDF:\n{msg}")
 
     def _go_back(self):
-        from ui.dashboard import Dashboard
-        for widget in self.master.winfo_children():
-            widget.destroy()
-        dashboard = Dashboard(self.master, self.user, self.app)
-        dashboard.pack(fill="both", expand=True)
+        self.app.switch_view("Dashboard")
