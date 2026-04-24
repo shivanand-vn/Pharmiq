@@ -5,14 +5,9 @@ Reports View — UI for generating, previewing, and exporting various reports.
 import customtkinter as ctk
 from tkinter import messagebox, ttk
 import itertools
+import threading
 from datetime import datetime
 
-# Local imports
-from models.report import (
-    get_sales_report, get_detailed_invoice_report,
-    get_inventory_report, get_expiry_report, get_returns_report
-)
-from utils.export_reports import export_to_excel, export_to_pdf
 from utils.async_db import async_db_call
 
 class ReportsView(ctk.CTkFrame):
@@ -171,6 +166,15 @@ class ReportsView(ctk.CTkFrame):
             command=self._generate_report
         )
         self.btn_generate.pack(side="right", padx=5)
+        
+        # Reset Button
+        self.btn_reset = ctk.CTkButton(
+            self.bot_row, text="↺ Reset", width=80,
+            fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
+            font=ctk.CTkFont(weight="bold"), corner_radius=8,
+            command=self._reset_filters
+        )
+        self.btn_reset.pack(side="right", padx=5)
 
     def _on_report_type_change(self, *args):
         """Show/hide filters based on the selected report type."""
@@ -184,7 +188,7 @@ class ReportsView(ctk.CTkFrame):
         if rtype == "Sales Report":
             self.date_frame.pack(side="left", padx=15)
             self.customer_frame.pack(side="left", padx=(0, 15))
-            self.status_frame.pack(side="left", padx=15)
+            self.medicine_frame.pack(side="left", padx=15)
         elif rtype == "Detailed Invoice Report":
             self.date_frame.pack(side="left", padx=15)
             self.customer_frame.pack(side="left", padx=(0, 15))
@@ -198,6 +202,23 @@ class ReportsView(ctk.CTkFrame):
             self.date_frame.pack(side="left", padx=15)
             self.customer_frame.pack(side="left", padx=(0, 15))
             self.medicine_frame.pack(side="left", padx=15)
+
+    def _reset_filters(self):
+        """Reset all filter inputs to defaults."""
+        self.from_date_entry.delete(0, "end")
+        self.to_date_entry.delete(0, "end")
+        self.customer_entry.set("")
+        self.medicine_entry.set("")
+        self.status_menu.set("All")
+        self.expiry_days_entry.delete(0, "end")
+        self.expiry_days_entry.insert(0, "30")
+        
+        # Clear table
+        self.tree.delete(*self.tree.get_children())
+        self.fetched_data = []
+        self.table_lbl.configure(text="Data Preview (0 records)")
+        self.btn_export_excel.configure(state="disabled")
+        self.btn_export_pdf.configure(state="disabled")
 
     def _load_filter_data(self):
         from db.connection import fetch_all
@@ -311,6 +332,21 @@ class ReportsView(ctk.CTkFrame):
             
         return fd, td
 
+    def _get_current_filters(self):
+        try:
+            fd, td = self._validate_dates()
+        except:
+            fd, td = None, None
+        days_str = self.expiry_days_entry.get().strip()
+        return {
+            "from_date": fd,
+            "to_date": td,
+            "customer": self.customer_entry.get().strip(),
+            "medicine": self.medicine_entry.get().strip(),
+            "status": self.status_menu.get(),
+            "expiry_days": int(days_str) if days_str.isdigit() else 30
+        }
+
     def _generate_report(self):
         rtype = self.current_report_type.get()
         
@@ -320,48 +356,38 @@ class ReportsView(ctk.CTkFrame):
             messagebox.showerror("Validation Error", str(e))
             return
             
-        cust = self.customer_entry.get().strip()
-        med = self.medicine_entry.get().strip()
-        stat = self.status_menu.get()
-        days_str = self.expiry_days_entry.get().strip()
+        filters = self._get_current_filters()
 
         # Update button text to loading if async
         self.btn_generate.configure(text="Generating...", state="disabled")
         self.update_idletasks() # Force UI update immediately
 
+        PREVIEW_LIMIT = 200  # Limit preview rows for performance
+
         def fetch_report():
-            if rtype == "Sales Report":
-                return get_sales_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, status=stat)
-            elif rtype == "Detailed Invoice Report":
-                return get_detailed_invoice_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, medicine_name=med)
-            elif rtype == "Inventory / Stock Report":
-                return get_inventory_report(self.distributor_id, medicine_name=med)
-            elif rtype == "Expiry Report":
-                try:
-                    days = int(days_str) if days_str else 30
-                except:
-                    days = 30
-                return get_expiry_report(self.distributor_id, days=days, medicine_name=med)
-            elif rtype == "Return Report":
-                return get_returns_report(self.distributor_id, from_date=fd, to_date=td, customer_name=cust, medicine_name=med)
-            return []
+            from services.report_service import fetch_data, process_data, format_report_data, get_report_config
+            raw_data = fetch_data(rtype, self.distributor_id, filters)
+            processed_data = process_data(rtype, raw_data)
+            table_data, totals = format_report_data(rtype, processed_data)
+            config = get_report_config(rtype)
+            return table_data, config, totals, len(table_data)
 
         def on_success(result):
             self.btn_generate.configure(text="Generate Preview", state="normal")
-            data = result
-            if rtype == "Sales Report":
-                self.current_columns = ["Invoice No", "Date", "Customer Name", "Total Amount", "Status"]
-            elif rtype == "Detailed Invoice Report":
-                self.current_columns = ["Invoice No", "Customer", "Medicine Name", "Batch No", "Qty", "Rate", "Total", "GST %"]
-            elif rtype == "Inventory / Stock Report":
-                self.current_columns = ["Medicine Name", "Batch Number", "Available Qty", "Expiry Date", "TRP", "MRP"]
-            elif rtype == "Expiry Report":
-                self.current_columns = ["Medicine Name", "Batch Number", "Expiry Date", "Available Qty"]
-            elif rtype == "Return Report":
-                self.current_columns = ["Return ID", "Invoice Ref", "Medicine Name", "Batch Number", "Returned Qty", "Return Date"]
-                
-            self.fetched_data = data
-            self._render_table(data, rtype)
+            table_data, config, totals, total_count = result
+            
+            self.current_columns = config["columns"]
+            self.fetched_data = table_data
+            
+            # Limit preview for performance
+            preview_data = table_data[:PREVIEW_LIMIT]
+            if total_count > PREVIEW_LIMIT:
+                self.table_lbl.configure(text=f"Data Preview (showing {PREVIEW_LIMIT} of {total_count} records)")
+            self._render_table(preview_data, rtype)
+            
+            # Update label with totals info if total_count <= PREVIEW_LIMIT
+            if total_count <= PREVIEW_LIMIT:
+                self.table_lbl.configure(text=f"Data Preview ({total_count} records)")
 
         def on_error(e):
             self.btn_generate.configure(text="Generate Preview", state="normal")
@@ -393,108 +419,88 @@ class ReportsView(ctk.CTkFrame):
         self.btn_export_excel.configure(state="normal")
         self.btn_export_pdf.configure(state="normal")
         
-        for i, row in enumerate(data):
-            tag = "even" if i % 2 == 0 else "odd"
-            
-            # Map dict to list of values matching columns order
-            values = []
-            
-            # Special Highlights
-            row_tag = tag
-            
-            # Using knowledge of dictionary keys based on models
-            if rtype == "Sales Report":
-                values = [
-                    row.get('invoice_no', ''),
-                    str(row.get('invoice_date', '')),
-                    row.get('customer_name', ''),
-                    f"₹{row.get('grand_total', 0):.2f}",
-                    row.get('status', '')
-                ]
-            elif rtype == "Detailed Invoice Report":
-                values = [
-                    row.get('invoice_no', ''),
-                    row.get('customer_name', ''),
-                    row.get('product_name', ''),
-                    row.get('batch_no', ''),
-                    row.get('quantity', 0),
-                    f"₹{row.get('trp', 0):.2f}",
-                    f"₹{row.get('total', 0):.2f}",
-                    f"{row.get('gst_percent', 0)}%"
-                ]
-            elif rtype == "Inventory / Stock Report":
-                qty = row.get('available_quantity', 0)
-                if qty < 10: # Low stock highlight
-                    row_tag = "warning"
-                values = [
-                    row.get('medicine_name', ''),
-                    row.get('batch_no', ''),
-                    qty,
-                    str(row.get('expiry_date', '')),
-                    f"₹{row.get('trp', 0):.2f}",
-                    f"₹{row.get('mrp', 0):.2f}"
-                ]
-            elif rtype == "Expiry Report":
-                row_tag = "danger" # All expiries are red
-                values = [
-                    row.get('medicine_name', ''),
-                    row.get('batch_no', ''),
-                    str(row.get('expiry_date', '')),
-                    row.get('quantity', 0)
-                ]
-            elif rtype == "Return Report":
-                values = [
-                    row.get('return_id', ''),
-                    row.get('invoice_reference', ''),
-                    row.get('medicine_name', ''),
-                    row.get('batch_id', ''), # Assuming batch_id serves as number for now if empty
-                    row.get('quantity_returned', 0),
-                    str(row.get('return_date', ''))
-                ]
-                # Also fallback to batch_no
-                if 'batch_no' in row and row['batch_no']:
-                    values[3] = row['batch_no']
-                
-            self.tree.insert("", "end", values=values, tags=(row_tag,))
-
-    def _get_formatted_data_for_export(self):
-        """Converts Treeview row data into a list of lists for export."""
-        data = []
-        for child in self.tree.get_children():
-            data.append(self.tree.item(child)["values"])
-        return data
+        # Special header row formatting
+        self.tree.tag_configure("header", font=("Segoe UI", 10, "bold"), background="#E5E7EB", foreground="#111827")
+        
+        for row in data:
+            values = row.get("values", [])
+            tag = row.get("tag", "even")
+            if row.get("is_header"):
+                self.tree.insert("", "end", values=values, tags=("header",))
+            else:
+                self.tree.insert("", "end", values=values, tags=(tag,))
 
     def _export_excel(self):
         if not self.fetched_data: return
+        from services.report_service import generate_filename
+        rtype = self.current_report_type.get()
+        filters = self._get_current_filters()
+        
+        default_name = generate_filename(rtype, filters["from_date"], filters["to_date"], filters["customer"], "xlsx")
+        
         file_path = ctk.filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             filetypes=[("Excel files", "*.xlsx")],
             title="Save Export as Excel",
-            initialfile=f"{self.current_report_type.get().replace(' / ', '_').replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            initialfile=default_name
         )
         if file_path:
-            formatted_data = self._get_formatted_data_for_export()
-            success, msg = export_to_excel(self.current_columns, formatted_data, file_path)
-            if success:
-                messagebox.showinfo("Export Successful", f"Excel saved to:\n{file_path}")
-            else:
-                messagebox.showerror("Export Failed", f"Could not save Excel:\n{msg}")
+            self.btn_export_excel.configure(text="Exporting...", state="disabled")
+            self.update_idletasks()
+            
+            def do_export():
+                from services.report_service import generate_report
+                return generate_report(rtype, "xlsx", filters, self.distributor_id, file_path)
+            
+            def on_done(result):
+                self.btn_export_excel.configure(text="⬇ Export Excel", state="normal")
+                success, msg = result
+                if success:
+                    messagebox.showinfo("Export Successful", f"Excel saved to:\n{file_path}")
+                else:
+                    messagebox.showerror("Export Failed", f"Could not save Excel:\n{msg}")
+            
+            def on_err(e):
+                self.btn_export_excel.configure(text="⬇ Export Excel", state="normal")
+                messagebox.showerror("Export Failed", str(e))
+            
+            async_db_call(self, do_export, (), on_done, on_err)
 
     def _export_pdf(self):
         if not self.fetched_data: return
+        from services.report_service import generate_filename
+        rtype = self.current_report_type.get()
+        filters = self._get_current_filters()
+        
+        default_name = generate_filename(rtype, filters["from_date"], filters["to_date"], filters["customer"], "pdf")
+        
         file_path = ctk.filedialog.asksaveasfilename(
             defaultextension=".pdf",
             filetypes=[("PDF files", "*.pdf")],
             title="Save Export as PDF",
-            initialfile=f"{self.current_report_type.get().replace(' / ', '_').replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            initialfile=default_name
         )
         if file_path:
-            formatted_data = self._get_formatted_data_for_export()
-            success, msg = export_to_pdf(self.current_report_type.get(), self.current_columns, formatted_data, file_path)
-            if success:
-                messagebox.showinfo("Export Successful", f"PDF saved to:\n{file_path}")
-            else:
-                messagebox.showerror("Export Failed", f"Could not save PDF:\n{msg}")
+            self.btn_export_pdf.configure(text="Exporting...", state="disabled")
+            self.update_idletasks()
+            
+            def do_export():
+                from services.report_service import generate_report
+                return generate_report(rtype, "pdf", filters, self.distributor_id, file_path)
+            
+            def on_done(result):
+                self.btn_export_pdf.configure(text="📄 Export PDF", state="normal")
+                success, msg = result
+                if success:
+                    messagebox.showinfo("Export Successful", f"PDF saved to:\n{file_path}")
+                else:
+                    messagebox.showerror("Export Failed", f"Could not save PDF:\n{msg}")
+            
+            def on_err(e):
+                self.btn_export_pdf.configure(text="📄 Export PDF", state="normal")
+                messagebox.showerror("Export Failed", str(e))
+            
+            async_db_call(self, do_export, (), on_done, on_err)
 
     def _go_back(self):
         self.app.switch_view("Dashboard")

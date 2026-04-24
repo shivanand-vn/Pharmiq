@@ -34,6 +34,40 @@ def get_sales_report(distributor_id, from_date=None, to_date=None, customer_name
     query += " ORDER BY i.invoice_date DESC, i.invoice_no DESC"
     return fetch_all(query, tuple(params))
 
+def get_sales_detail_report(distributor_id, from_date=None, to_date=None, customer_name=None, medicine_name=None):
+    """
+    Aggregated sales data using SQL GROUP BY for performance.
+    Groups by medicine_name + batch_no, computes SUM(qty) and SUM(amount) at DB level.
+    """
+    query = """
+        SELECT ii.product_name, ii.batch_no,
+               SUM(ii.qty) as total_qty,
+               ii.trp,
+               SUM(ii.amount) as total_value
+        FROM invoice_items ii
+        JOIN invoices i ON ii.invoice_no = i.invoice_no
+        LEFT JOIN customers c ON i.customer_license_no = c.license_no
+        WHERE i.distributor_id = %s
+    """
+    params = [distributor_id]
+
+    if from_date:
+        query += " AND i.invoice_date >= %s"
+        params.append(from_date)
+    if to_date:
+        query += " AND i.invoice_date <= %s"
+        params.append(to_date)
+    if customer_name:
+        query += " AND c.shop_name LIKE %s"
+        params.append(f"%{customer_name}%")
+    if medicine_name:
+        query += " AND ii.product_name LIKE %s"
+        params.append(f"%{medicine_name}%")
+
+    query += " GROUP BY ii.product_name, ii.batch_no, ii.trp"
+    query += " ORDER BY ii.product_name ASC, ii.batch_no ASC"
+    return fetch_all(query, tuple(params))
+
 def get_detailed_invoice_report(distributor_id, from_date=None, to_date=None, customer_name=None, medicine_name=None):
     """
     Detailed item-wise invoice report.
@@ -68,7 +102,7 @@ def get_detailed_invoice_report(distributor_id, from_date=None, to_date=None, cu
 def get_inventory_report(distributor_id, medicine_name=None):
     """
     Inventory/Stock report.
-    Fields: Medicine Name, Batch Number, Available Quantity, Expiry Date, Purchase Price, Selling Price.
+    Fields: Medicine Name, Batch Number, Available Quantity, Expiry Date, Cost Price, TRP, MRP.
     """
     query = """
         SELECT m.name as medicine_name, b.batch_number as batch_no, b.quantity as available_quantity,
@@ -104,14 +138,17 @@ def get_inventory_report(distributor_id, medicine_name=None):
         fallback_query += " ORDER BY m.name ASC, b.expiry_date ASC"
         return fetch_all(fallback_query, tuple(params))
 
-def get_expiry_report(distributor_id, days=30, medicine_name=None):
+def get_expiry_report(distributor_id, days=30, medicine_name=None, from_date=None, to_date=None):
     """
-    Expiry report.
+    Expiry report — supports both days-based and date-range filtering.
+    If from_date/to_date are provided, they take precedence for the date range.
+    The 'days' parameter is used as a cutoff (items expiring within N days).
+    Both filters are applied simultaneously when present.
     Fields: Medicine Name, Batch Number, Expiry Date, Quantity.
     """
     params = [distributor_id]
     
-    # Compute the cutoff date
+    # Compute the cutoff date from days
     if type(days) == str:
         try:
             days = int(days)
@@ -119,14 +156,25 @@ def get_expiry_report(distributor_id, days=30, medicine_name=None):
             days = 30
     
     cutoff_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d')
-    params.append(cutoff_date)
 
     query = """
         SELECT m.name as medicine_name, b.batch_number as batch_no, b.expiry_date, b.quantity
         FROM inventory_batches b
         JOIN medicines m ON b.medicine_id = m.medicine_id
-        WHERE b.distributor_id = %s AND b.expiry_date <= %s AND b.quantity > 0
+        WHERE b.distributor_id = %s AND b.quantity > 0
     """
+
+    # Apply days-based cutoff
+    query += " AND b.expiry_date <= %s"
+    params.append(cutoff_date)
+
+    # Apply date-range filters if provided (narrows further)
+    if from_date:
+        query += " AND b.expiry_date >= %s"
+        params.append(from_date)
+    if to_date:
+        query += " AND b.expiry_date <= %s"
+        params.append(to_date)
 
     if medicine_name:
         query += " AND m.name LIKE %s"
