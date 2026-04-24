@@ -44,7 +44,7 @@ class Dashboard(ctk.CTkFrame):
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_propagate(False)
 
-        # Logo and Title
+        # Logo and Title at top
         logo_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         logo_frame.pack(pady=(25, 30), padx=20, anchor="w", fill="x")
         
@@ -69,7 +69,7 @@ class Dashboard(ctk.CTkFrame):
             ("Returns", "rotate-ccw", False, self._go_returns, ["Admin", "Biller"]),
             ("Reports & Analytics", "bar-chart", False, self._show_reports, ["Admin", "Accountant"]),
             ("Users & Roles", "users", False, self._show_users, ["Admin"]),
-            ("Settings", "settings", False, self._show_settings, ["Admin"])
+            # Settings removed from sidebar
         ]
         nav_items = [item for item in all_nav_items if role in item[4]]
 
@@ -103,23 +103,13 @@ class Dashboard(ctk.CTkFrame):
             )
             btn.pack(pady=4, padx=15, fill="x")
 
-        # Bottom Profile + Logout Section
+        # Bottom: User info, then Logout
         bottom_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         bottom_frame.pack(side="bottom", pady=20, padx=15, fill="x")
 
-        # Logout button
-        ctk.CTkButton(
-            bottom_frame, text="🚪  Logout",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            fg_color="#E74C3C", hover_color="#C0392B",
-            text_color="#FFFFFF", corner_radius=8,
-            height=40,
-            command=self._logout,
-        ).pack(fill="x", pady=(0, 12))
-
-        # User info row
+        # User info row first
         user_row = ctk.CTkFrame(bottom_frame, fg_color="transparent")
-        user_row.pack(fill="x")
+        user_row.pack(fill="x", pady=(0, 12))
 
         avatar_lbl = ctk.CTkLabel(
             user_row, text="👤", width=36, height=36, 
@@ -133,6 +123,16 @@ class Dashboard(ctk.CTkFrame):
             font=ctk.CTkFont(size=14, weight="bold"), text_color="#FFFFFF"
         ).pack(side="left")
 
+        # Logout button below user info
+        ctk.CTkButton(
+            bottom_frame, text="🚪  Logout",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#E74C3C", hover_color="#C0392B",
+            text_color="#FFFFFF", corner_radius=8,
+            height=40,
+            command=self._logout,
+        ).pack(fill="x")
+
     def _build_main_area(self):
         main_content = ctk.CTkFrame(self, fg_color="transparent")
         main_content.grid(row=0, column=1, sticky="nsew", padx=25, pady=(15, 25))
@@ -141,32 +141,9 @@ class Dashboard(ctk.CTkFrame):
         main_content.columnconfigure(1, weight=3)
         main_content.rowconfigure(1, weight=1)
 
-        # 1. Top Header
-        header_frame = ctk.CTkFrame(main_content, fg_color="transparent", height=50)
-        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 20))
-        header_frame.pack_propagate(False)
-
-        search_entry = ctk.CTkEntry(
-            header_frame, placeholder_text="🔍 Search customers, products, or orders...",
-            width=400, height=40, corner_radius=20, border_width=0, fg_color="#FFFFFF",
-            text_color="#495057"
-        )
-        search_entry.pack(side="left")
-
-        right_icons = ctk.CTkFrame(header_frame, fg_color="transparent")
-        right_icons.pack(side="right")
-
-        ctk.CTkLabel(right_icons, text="🔔", font=ctk.CTkFont(size=20), text_color="#6C757D").pack(side="left", padx=10)
-        ctk.CTkLabel(right_icons, text="❓", font=ctk.CTkFont(size=20), text_color="#6C757D").pack(side="left", padx=10)
-        
-        prof_frame = ctk.CTkFrame(right_icons, fg_color="transparent")
-        prof_frame.pack(side="left", padx=(10, 0))
-        ctk.CTkLabel(prof_frame, text="👤", width=32, height=32, corner_radius=16, fg_color="#F8B195").pack(side="left")
-        info = ctk.CTkFrame(prof_frame, fg_color="transparent")
-        info.pack(side="left", padx=(8, 0))
-        role = self.user.get('role', 'Admin')
-        ctk.CTkLabel(info, text=self.user.get('username', 'Admin'), font=ctk.CTkFont(size=13, weight="bold"), text_color="#212529", height=15).pack(anchor="w")
-        ctk.CTkLabel(info, text=self.distributor.get('name', 'Pharmiq')[:15], font=ctk.CTkFont(size=11), text_color="#6C757D", height=15).pack(anchor="w")
+        # 1. Top Header (minimal spacer)
+        header_frame = ctk.CTkFrame(main_content, fg_color="transparent", height=10)
+        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
         # 2. Split into Left and Right Dash Panels
         left_panel = ctk.CTkFrame(main_content, fg_color="transparent")
@@ -298,6 +275,9 @@ class Dashboard(ctk.CTkFrame):
         
         um_card = ctk.CTkFrame(right_panel, fg_color="#FFFFFF", corner_radius=16)
         um_card.pack(fill="x")
+        
+        role = self.user.get('role', 'Admin')
+        
         ctk.CTkLabel(um_card, text="Role Information", font=ctk.CTkFont(size=16, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=20, pady=(20, 5))
         ctk.CTkLabel(um_card, text=f"Logged in as: {role}", font=ctk.CTkFont(size=12, weight="bold"), text_color="#10B981", anchor="w").pack(fill="x", padx=20)
         ctk.CTkLabel(um_card, text="Access determined by role.", font=ctk.CTkFont(size=11), text_color="#6B7280", anchor="w").pack(fill="x", padx=20)
