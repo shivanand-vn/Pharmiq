@@ -12,6 +12,7 @@ import datetime
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+import seaborn as sns
 
 from models.distributor import get_distributor_by_id
 from models.invoice import get_invoices_by_distributor
@@ -83,7 +84,7 @@ class Dashboard(ctk.CTkFrame):
 
         for title, icon_key, is_active, handler, allowed in nav_items:
             bg_color = "#326F8A" if is_active else "transparent"
-            hover_color = "#326F8A"
+            hover_color = "#2A5A72"
             text_color = "#FFFFFF" if is_active else "#A8C5DA"
             
             icon_str = icons.get(icon_key, '')
@@ -168,22 +169,23 @@ class Dashboard(ctk.CTkFrame):
         kpi_frame.columnconfigure((0,1,2,3), weight=1)
 
         kpis = [
-            ("Total Sales", f"₹{float(kpi_data['total_sales']):,.0f}", "All time", "#E0F7FA", "#00ACC1", "↑", "#00838F", "💵"),
-            ("Today's Revenue", f"₹{float(kpi_data['todays_revenue']):,.0f}", "Updated just now", "#E8F5E9", "#43A047", "↑", "#2E7D32", "📈"),
-            ("Active Customers", f"{kpi_data['active_customers']:,}", "Active this month", "#E3F2FD", "#1E88E5", "↑", "#1565C0", "🤝"),
-            ("Low Stock Alerts", f"{kpi_data['low_stock_count']:,}", "Needs attention", "#FFEBEE", "#E53935", "↓", "#C62828", "⚠️")
+            ("Total Sales", f"₹{float(kpi_data['total_sales']):,.0f}", "All time", "#FFFFFF", "#00ACC1", "↑", "#00838F", "💵"),
+            ("Today's Revenue", f"₹{float(kpi_data['todays_revenue']):,.0f}", "Updated just now", "#FFFFFF", "#43A047", "↑", "#2E7D32", "📈"),
+            ("Active Customers", f"{kpi_data['active_customers']:,}", "Active this month", "#FFFFFF", "#1E88E5", "↑", "#1565C0", "🤝"),
+            ("Low Stock Alerts", f"{kpi_data['low_stock_count']:,}", "Needs attention", "#FFFFFF", "#E53935", "↓", "#C62828", "⚠️")
         ]
 
         for i, (title, val, sub, bg, color, trend_ic, tr_color, icon) in enumerate(kpis):
-            card = ctk.CTkFrame(kpi_frame, fg_color=bg, corner_radius=16)
-            card.grid(row=0, column=i, sticky="ew", padx=5)
+            card = ctk.CTkFrame(kpi_frame, fg_color=bg, corner_radius=16, border_width=1, border_color="#E5E7EB")
+            card.grid(row=0, column=i, sticky="ew", padx=8)
             
             top = ctk.CTkFrame(card, fg_color="transparent")
             top.pack(fill="x", padx=15, pady=(15, 5))
             
-            trend_lbl = ctk.CTkLabel(top, text=trend_ic, text_color=color, font=ctk.CTkFont(size=12, weight="bold"), width=20, height=20, corner_radius=10, fg_color="#FFFFFF")
+            trend_bg = "#F3F4F6"
+            trend_lbl = ctk.CTkLabel(top, text=trend_ic, text_color=color, font=ctk.CTkFont(size=12, weight="bold"), width=20, height=20, corner_radius=10, fg_color=trend_bg)
             trend_lbl.pack(side="left")
-            ctk.CTkLabel(top, text=f" {title}", font=ctk.CTkFont(size=13, weight="bold"), text_color="#1F2937").pack(side="left", padx=5)
+            ctk.CTkLabel(top, text=f" {title}", font=ctk.CTkFont(size=13, weight="bold"), text_color="#4B5563").pack(side="left", padx=5)
             
             ic_lbl = ctk.CTkLabel(top, text=icon, font=ctk.CTkFont(size=16))
             ic_lbl.pack(side="right")
@@ -196,18 +198,18 @@ class Dashboard(ctk.CTkFrame):
         charts_frame.pack(fill="x", pady=(0, 20))
         charts_frame.columnconfigure((0,1), weight=1)
 
-        c1 = ctk.CTkFrame(charts_frame, fg_color="#FFFFFF", corner_radius=16)
+        c1 = ctk.CTkFrame(charts_frame, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         c1.grid(row=0, column=0, sticky="ew", padx=(0, 5))
         ctk.CTkLabel(c1, text="Sales Trend", font=ctk.CTkFont(size=15, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=15, pady=(15, 5))
         self._add_line_chart(c1)
 
-        c2 = ctk.CTkFrame(charts_frame, fg_color="#FFFFFF", corner_radius=16)
+        c2 = ctk.CTkFrame(charts_frame, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         c2.grid(row=0, column=1, sticky="ew", padx=(5, 0))
         ctk.CTkLabel(c2, text="Product Distribution", font=ctk.CTkFont(size=15, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=15, pady=(15, 5))
         self._add_bar_chart(c2)
 
         # Recent Invoices Table
-        inv_frame = ctk.CTkFrame(left_panel, fg_color="#FFFFFF", corner_radius=16)
+        inv_frame = ctk.CTkFrame(left_panel, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         inv_frame.pack(fill="both", expand=True)
 
         ctk.CTkLabel(inv_frame, text="Recent Invoices", font=ctk.CTkFont(size=16, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=20, pady=(20, 10))
@@ -218,14 +220,18 @@ class Dashboard(ctk.CTkFrame):
 
 
         # --- RIGHT PANEL (NOTIFICATIONS) ---
-        notif_frame = ctk.CTkFrame(right_panel, fg_color="#FFFFFF", corner_radius=16)
+        notif_frame = ctk.CTkFrame(right_panel, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         notif_frame.pack(fill="x", pady=(0, 20))
         ctk.CTkLabel(notif_frame, text="Notifications", font=ctk.CTkFont(size=16, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=20, pady=(20, 10))
 
         # Dynamic Low Stock
-        ls_bg = ctk.CTkFrame(notif_frame, fg_color="#FFEBEE", corner_radius=8)
+        ls_bg = ctk.CTkFrame(notif_frame, fg_color="#FEF2F2", corner_radius=8)
         ls_bg.pack(fill="x", padx=20, pady=(0, 10))
-        ctk.CTkLabel(ls_bg, text="Low Stock", font=ctk.CTkFont(size=13, weight="bold"), text_color="#D32F2F", anchor="w").pack(side="left", padx=10, pady=5)
+        
+        ls_accent = ctk.CTkFrame(ls_bg, fg_color="#EF4444", width=4, corner_radius=4)
+        ls_accent.pack(side="left", fill="y", pady=2, padx=(2, 0))
+        
+        ctk.CTkLabel(ls_bg, text="Low Stock", font=ctk.CTkFont(size=13, weight="bold"), text_color="#B91C1C", anchor="w").pack(side="left", padx=10, pady=8)
         ctk.CTkLabel(ls_bg, text="⚠️", font=ctk.CTkFont(size=13), text_color="#D32F2F").pack(side="right", padx=10)
 
         try:
@@ -244,9 +250,13 @@ class Dashboard(ctk.CTkFrame):
                 ctk.CTkLabel(it, text=f" {item.get('quantity', 0)} left", font=ctk.CTkFont(size=12, weight="bold"), text_color="#D32F2F").pack(side="left")
 
         # Dynamic Expiring Medicines
-        ex_bg = ctk.CTkFrame(notif_frame, fg_color="#FFEBEE", corner_radius=8)
+        ex_bg = ctk.CTkFrame(notif_frame, fg_color="#FEF2F2", corner_radius=8)
         ex_bg.pack(fill="x", padx=20, pady=(20, 10))
-        ctk.CTkLabel(ex_bg, text="Expiring Medicines", font=ctk.CTkFont(size=13, weight="bold"), text_color="#D32F2F", anchor="w").pack(side="left", padx=10, pady=5)
+        
+        ex_accent = ctk.CTkFrame(ex_bg, fg_color="#EF4444", width=4, corner_radius=4)
+        ex_accent.pack(side="left", fill="y", pady=2, padx=(2, 0))
+        
+        ctk.CTkLabel(ex_bg, text="Expiring Medicines", font=ctk.CTkFont(size=13, weight="bold"), text_color="#B91C1C", anchor="w").pack(side="left", padx=10, pady=8)
         ctk.CTkLabel(ex_bg, text="⚠️", font=ctk.CTkFont(size=13), text_color="#D32F2F").pack(side="right", padx=10)
 
         try:
@@ -273,7 +283,7 @@ class Dashboard(ctk.CTkFrame):
         actions_card = ctk.CTkFrame(right_panel, fg_color="transparent")
         actions_card.pack(fill="x", pady=(0, 20))
         
-        um_card = ctk.CTkFrame(right_panel, fg_color="#FFFFFF", corner_radius=16)
+        um_card = ctk.CTkFrame(right_panel, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         um_card.pack(fill="x")
         
         role = self.user.get('role', 'Admin')
@@ -286,18 +296,16 @@ class Dashboard(ctk.CTkFrame):
             ctk.CTkButton(
                 um_card, text="Manage Users", 
                 font=ctk.CTkFont(size=13, weight="bold"), fg_color="#F9FAFB", text_color="#374151",
-                hover_color="#E5E7EB", corner_radius=8, height=35, border_width=1, border_color="#D1D5DB",
+                hover_color="#E5E7EB", corner_radius=12, height=35, border_width=1, border_color="#D1D5DB",
                 command=self._show_users
             ).pack(side="right", padx=20, pady=(15, 20))
         else:
              ctk.CTkFrame(um_card, height=45, fg_color="transparent").pack(pady=(0, 15))
 
     def _add_line_chart(self, parent):
+        sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0), "figure.facecolor": (0, 0, 0, 0)})
         fig = Figure(figsize=(4.5, 2.2), dpi=100)
         ax = fig.add_subplot(111)
-        ax.axis('off')
-        fig.patch.set_facecolor('#FFFFFF')
-        ax.set_facecolor('#FFFFFF')
 
         try:
             trend_data = get_sales_trend(self.user["distributor_id"], limit_months=12)
@@ -313,8 +321,19 @@ class Dashboard(ctk.CTkFrame):
             y = np.sin(x*1.5)*3 + x*1.2 + 5
             labels = []
 
-        ax.plot(x, y, color="#26C6DA", linewidth=2.5)
-        ax.fill_between(x, y, 0, color="#E0F7FA", alpha=0.5)
+        sns.lineplot(x=x, y=y, ax=ax, color="#0EA5E9", linewidth=2.5)
+        ax.fill_between(x, y, 0, color="#E0F2FE", alpha=0.4)
+
+        if labels:
+            ax.set_xticks(x)
+            ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=8, color="#6B7280")
+        
+        ax.set_ylabel("Sales (₹)", fontsize=9, color="#6B7280")
+        ax.tick_params(axis='y', labelsize=8, colors="#6B7280")
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('#E5E7EB')
+        ax.spines['bottom'].set_color('#E5E7EB')
 
         fig.tight_layout(pad=1)
         canvas = FigureCanvasTkAgg(fig, master=parent)
@@ -322,11 +341,10 @@ class Dashboard(ctk.CTkFrame):
         canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
     def _add_bar_chart(self, parent):
+        sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0), "figure.facecolor": (0, 0, 0, 0)})
         fig = Figure(figsize=(4.5, 2.2), dpi=100)
         ax = fig.add_subplot(111)
         ax.axis('off')
-        fig.patch.set_facecolor('#FFFFFF')
-        ax.set_facecolor('#FFFFFF')
 
         try:
             dist_data = get_product_distribution(self.user["distributor_id"])
@@ -347,17 +365,14 @@ class Dashboard(ctk.CTkFrame):
             labels = ['Antibiotics', 'Painkillers', 'Cardio', 'Diabetes']
             values = [86, 60, 40, 25]
 
-        # Ensure we have 4 colors max mapped
-        colors = ['#29B6F6', '#FFA726', '#AB47BC', '#5C6BC0'][:len(labels)]
-        if not colors: # Fallbacks
+        colors = ['#38BDF8', '#FBBF24', '#A78BFA', '#818CF8'][:len(labels)]
+        if not colors:
             return
 
-        y_pos = np.arange(len(labels))
-        ax.barh(y_pos, values, color=colors, height=0.5, edgecolor="none")
-        ax.invert_yaxis()
+        sns.barplot(x=values, y=labels, ax=ax, palette=colors, orient='h', hue=labels, legend=False)
 
         for idx, (label, val) in enumerate(zip(labels, values)):
-            ax.text(-2, idx, str(label)[:12], va='center', ha='right', fontsize=9, color="#4B5563")
+            ax.text(-2, idx, str(label)[:12], va='center', ha='right', fontsize=9, color="#6B7280")
             ax.text(val-2, idx, f"{val}%", va='center', ha='right', fontsize=9, color="#FFFFFF", fontweight="bold")
 
         ax.set_xlim(-30, 100)
@@ -395,19 +410,18 @@ class Dashboard(ctk.CTkFrame):
 
         def get_status_style(status, idx):
             options = {
-                "Paid": ("Paid", "#10B981", "#D1FAE5"),
-                "Pending": ("Pending", "#F59E0B", "#FEF3C7"),
-                "Partial": ("Partial", "#F39C12", "#FDEBD0"),
-                "Overdue": ("Overdue", "#EF4444", "#FEE2E2")
+                "Paid": ("Paid", "#059669", "#ECFDF5"),
+                "Pending": ("Pending", "#D97706", "#FFFBEB"),
+                "Partial": ("Partial", "#D97706", "#FFFBEB"),
+                "Overdue": ("Overdue", "#DC2626", "#FEF2F2")
             }
             return options.get(status, options["Pending"])
 
         for idx, inv in enumerate(invoices):
-            row = ctk.CTkFrame(self.invoices_scroll, fg_color="transparent", height=45)
+            row_bg = "transparent" if idx % 2 == 0 else "#F9FAFB"
+            row = ctk.CTkFrame(self.invoices_scroll, fg_color=row_bg, height=45, corner_radius=8)
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
-            
-            ctk.CTkFrame(self.invoices_scroll, fg_color="#F3F4F6", height=1).pack(fill="x", padx=10)
 
             inv_date = inv.get("invoice_date", "")
             if hasattr(inv_date, "strftime"):
