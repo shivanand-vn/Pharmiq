@@ -10,12 +10,12 @@ import re
 from models.customer import search_customers, create_customer, update_customer, toggle_customer_status, check_gst_exists
 from utils.async_db import async_db_call
 
-# ── Colour palette ──
-BG_DARK = "#F8F9FA"
+# ── Colour palette (Dashboard Design System) ──
+BG_DARK = "#F1F4F9"
 CARD_BG = "#FFFFFF"
 BORDER_CLR = "#E5E7EB"
-ACCENT = "#4361EE"
-ACCENT_HOVER = "#3A0CA3"
+ACCENT = "#0EA5E9"
+ACCENT_HOVER = "#0284C7"
 TEXT_DARK = "#111827"
 TEXT_MUTED = "#6B7280"
 ENTRY_BG = "#F9FAFB"
