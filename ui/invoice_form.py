@@ -14,20 +14,21 @@ from services.invoice_service import calculate_item_amount, calculate_invoice_to
 from services.pdf_generator import generate_invoice_pdf, open_pdf
 from models.distributor import get_distributor_by_id
 
-BG_MAIN = "#F0F2F5"
+# -- Colour palette (Dashboard Design System) --
+BG_MAIN = "#F1F4F9"
 CARD_BG = "#FFFFFF"
 ROW_BG_1 = "#FFFFFF"
-ROW_BG_2 = "#F8FAFC"
-BORDER_CLR = "#E2E8F0"
-ACCENT = "#16A34A"
-ACCENT_HOVER = "#15803D"
-ACCENT_BLUE = "#3B82F6"
-TEXT_DARK = "#0F172A"
-TEXT_MUTED = "#64748B"
-ENTRY_BG = "#F8FAFC"
-SUCCESS = "#16A34A"
+ROW_BG_2 = "#F9FAFB"
+BORDER_CLR = "#E5E7EB"
+ACCENT = "#10B981"
+ACCENT_HOVER = "#059669"
+ACCENT_BLUE = "#0EA5E9"
+TEXT_DARK = "#111827"
+TEXT_MUTED = "#6B7280"
+ENTRY_BG = "#F9FAFB"
+SUCCESS = "#10B981"
 DANGER = "#EF4444"
-TOP_BAR_BG = "#1E293B"
+TOP_BAR_BG = "#FFFFFF"
 
 class InvoiceForm(ctk.CTkFrame):
     def __init__(self, master, user_context, distributor, app_ref):
@@ -42,26 +43,26 @@ class InvoiceForm(ctk.CTkFrame):
         self._build_ui()
 
     def _build_ui(self):
-        # ── Top bar (dark navy) ──
-        top = ctk.CTkFrame(self, fg_color=TOP_BAR_BG, corner_radius=0, height=48)
+        # ── Top bar (white card-style, matching all modules) ──
+        top = ctk.CTkFrame(self, fg_color=TOP_BAR_BG, corner_radius=0, height=60, border_width=1, border_color=BORDER_CLR)
         top.pack(fill="x")
         top.pack_propagate(False)
 
         ctk.CTkButton(
-            top, text="← Back", width=70, height=30,
-            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=6,
-            fg_color="transparent", hover_color="#334155", text_color="#FFFFFF",
+            top, text="← Back", width=80, height=36,
+            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=8,
+            fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
             command=self._go_back,
-        ).pack(side="left", padx=15, pady=9)
+        ).pack(side="left", padx=20, pady=12)
 
         ctk.CTkLabel(
             top, text="Create New Invoice",
-            font=ctk.CTkFont(size=15, weight="bold"), text_color="#FFFFFF",
+            font=ctk.CTkFont(size=18, weight="bold"), text_color=ACCENT_BLUE,
         ).pack(side="left", padx=10)
 
         ctk.CTkLabel(
             top, text="PharmIQ",
-            font=ctk.CTkFont(size=14, weight="bold"), text_color="#94A3B8",
+            font=ctk.CTkFont(size=14, weight="bold"), text_color=TEXT_MUTED,
         ).pack(side="right", padx=20)
 
         # ── Scrollable main content ──
