@@ -14,13 +14,13 @@ from ui.invoice_preview import InvoicePreviewFrame
 from services.pdf_generator import generate_invoice_pdf
 from utils.async_db import async_db_call
 
-# -- Constants --
-BG_MAIN = "#F1F5F9"
+# -- Constants (Dashboard Design System) --
+BG_MAIN = "#F1F4F9"
 CARD_BG = "#FFFFFF"
-ACCENT = "#1B4F6B"
-TEXT_DARK = "#1E293B"
-TEXT_MUTED = "#64748B"
-BORDER_CLR = "#CBD5E1"
+ACCENT = "#0EA5E9"
+TEXT_DARK = "#111827"
+TEXT_MUTED = "#6B7280"
+BORDER_CLR = "#E5E7EB"
 SUCCESS = "#10B981"
 WARNING = "#F59E0B"
 
@@ -58,17 +58,17 @@ class InvoiceHistoryView(ctk.CTkFrame):
 
     def _build_ui(self):
         # ── Top Toolbar ──
-        toolbar = ctk.CTkFrame(self, fg_color=CARD_BG, height=60, corner_radius=0)
+        toolbar = ctk.CTkFrame(self, fg_color=CARD_BG, height=60, corner_radius=0, border_width=1, border_color=BORDER_CLR)
         toolbar.pack(fill="x", side="top")
         toolbar.pack_propagate(False)
 
         # Back Button
         ctk.CTkButton(
-            toolbar, text="← Back", width=80, height=32,
-            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=6,
-            fg_color="#F1F5F9", hover_color="#E2E8F0", text_color=TEXT_DARK,
+            toolbar, text="← Back", width=80, height=36,
+            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=8,
+            fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
             command=self._go_back
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=20, pady=12)
 
         title_lbl = ctk.CTkLabel(
             toolbar, text="📜  Invoice History",
@@ -83,7 +83,7 @@ class InvoiceHistoryView(ctk.CTkFrame):
         search_entry = ctk.CTkEntry(
             toolbar, placeholder_text="🔍 Search No, Customer, GST...",
             width=300, height=36, corner_radius=18, border_width=1, border_color=BORDER_CLR,
-            fg_color="#F8FAFC", text_color=TEXT_DARK, textvariable=self.search_var
+            fg_color="#F9FAFB", text_color=TEXT_DARK, textvariable=self.search_var
         )
         search_entry.pack(side="right", padx=25)
 
@@ -92,12 +92,12 @@ class InvoiceHistoryView(ctk.CTkFrame):
         self.main_split.pack(fill="both", expand=True, padx=20, pady=20)
 
         # 1. Left Panel: Invoice List (compact)
-        self.left_panel = ctk.CTkFrame(self.main_split, fg_color=CARD_BG, corner_radius=12)
+        self.left_panel = ctk.CTkFrame(self.main_split, fg_color=CARD_BG, corner_radius=16, border_width=1, border_color=BORDER_CLR)
         self.left_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
         # Table Header (Compressed)
-        header = ctk.CTkFrame(self.left_panel, fg_color="#F1F5F9", height=40, corner_radius=0)
-        header.pack(fill="x", side="top")
+        header = ctk.CTkFrame(self.left_panel, fg_color="#F9FAFB", height=40, corner_radius=8)
+        header.pack(fill="x", side="top", padx=10, pady=(10, 5))
         header.pack_propagate(False)
 
         # Reduced widths for side-by-side
@@ -117,7 +117,7 @@ class InvoiceHistoryView(ctk.CTkFrame):
         self.list_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
         # 2. Right Panel: Embedded Preview
-        self.right_panel = ctk.CTkFrame(self.main_split, fg_color=CARD_BG, corner_radius=12, width=750)
+        self.right_panel = ctk.CTkFrame(self.main_split, fg_color=CARD_BG, corner_radius=16, border_width=1, border_color=BORDER_CLR, width=750)
         self.right_panel.pack(side="left", fill="both", expand=False)
         self.right_panel.pack_propagate(False)
         
@@ -188,7 +188,7 @@ class InvoiceHistoryView(ctk.CTkFrame):
             view_frame.pack(side="left")
 
             view_btn = ctk.CTkButton(
-                view_frame, text="      👁️", width=30, height=30, fg_color="#F1F5F9", hover_color="#E2E8F0",
+                view_frame, text="      👁️", width=30, height=30, fg_color="#F3F4F6", hover_color="#E5E7EB",
                 text_color=ACCENT, font=ctk.CTkFont(size=18), corner_radius=6, anchor="center"
             )
             view_btn.pack(expand=True)
