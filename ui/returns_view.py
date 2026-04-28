@@ -8,12 +8,12 @@ from tkinter import messagebox
 from datetime import date
 from models.returns import get_returnable_invoice, create_return
 
-# -- Colour palette --
-BG_DARK = "#F8F9FA"
+# -- Colour palette (Dashboard Design System) --
+BG_DARK = "#F1F4F9"
 CARD_BG = "#FFFFFF"
 BORDER_CLR = "#E5E7EB"
-ACCENT = "#4361EE"
-ACCENT_HOVER = "#3A0CA3"
+ACCENT = "#0EA5E9"
+ACCENT_HOVER = "#0284C7"
 TEXT_DARK = "#111827"
 TEXT_MUTED = "#6B7280"
 ENTRY_BG = "#F9FAFB"
