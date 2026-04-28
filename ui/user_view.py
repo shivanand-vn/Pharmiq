@@ -8,16 +8,16 @@ from tkinter import messagebox
 from models.user import get_all_users_with_roles, update_user_status, create_user, update_user
 from utils.async_db import async_db_call
 
-# ── Colour palette ──
-BG_DARK = "#F8F9FA"
+# ── Colour palette (Dashboard Design System) ──
+BG_DARK = "#F1F4F9"
 CARD_BG = "#FFFFFF"
-BORDER_CLR = "#DEE2E6"
-ACCENT = "#4361EE"
-TEXT_DARK = "#212529"
-TEXT_MUTED = "#868E96"
+BORDER_CLR = "#E5E7EB"
+ACCENT = "#0EA5E9"
+TEXT_DARK = "#111827"
+TEXT_MUTED = "#6B7280"
 SUCCESS = "#10B981"
 DANGER = "#EF4444"
-INPUT_BG = "#F8F9FA"
+INPUT_BG = "#F9FAFB"
 
 class UserView(ctk.CTkFrame):
     """View to list and manage users and their roles side-by-side."""
@@ -36,7 +36,7 @@ class UserView(ctk.CTkFrame):
 
     def _build_ui(self):
         # ── Top bar ──
-        top = ctk.CTkFrame(self, fg_color="#212529", corner_radius=0, height=50)
+        top = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=0, height=60, border_width=1, border_color=BORDER_CLR)
         top.pack(fill="x")
         top.pack_propagate(False)
 
@@ -48,11 +48,11 @@ class UserView(ctk.CTkFrame):
             return
 
         ctk.CTkButton(
-            top, text="← Back", width=80, height=30,
-            font=ctk.CTkFont(size=11), corner_radius=8,
-            fg_color="#E9ECEF", hover_color="#CED4DA", text_color="#212529",
+            top, text="← Back", width=80, height=36,
+            font=ctk.CTkFont(size=12, weight="bold"), corner_radius=8,
+            fg_color="#F3F4F6", hover_color="#E5E7EB", text_color="#374151",
             command=self._go_back,
-        ).pack(side="left", padx=10, pady=10)
+        ).pack(side="left", padx=20, pady=12)
 
         ctk.CTkLabel(
             top, text="👥  User & Role Management",
@@ -67,10 +67,10 @@ class UserView(ctk.CTkFrame):
         main_container.columnconfigure(1, weight=3)
         main_container.rowconfigure(0, weight=1)
 
-        self.left_col = ctk.CTkFrame(main_container, fg_color=CARD_BG, corner_radius=12, border_width=1, border_color=BORDER_CLR)
+        self.left_col = ctk.CTkFrame(main_container, fg_color=CARD_BG, corner_radius=16, border_width=1, border_color=BORDER_CLR)
         self.left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
-        self.right_col = ctk.CTkFrame(main_container, fg_color=CARD_BG, corner_radius=12, border_width=1, border_color=BORDER_CLR)
+        self.right_col = ctk.CTkFrame(main_container, fg_color=CARD_BG, corner_radius=16, border_width=1, border_color=BORDER_CLR)
         self.right_col.grid(row=0, column=1, sticky="nsew")
 
         self._build_table_area()
@@ -84,7 +84,7 @@ class UserView(ctk.CTkFrame):
         ctx_title.pack(anchor="w", padx=20, pady=(20, 10))
 
         # Header
-        header = ctk.CTkFrame(self.left_col, fg_color="#F3F4F6", corner_radius=8, height=40)
+        header = ctk.CTkFrame(self.left_col, fg_color="#F9FAFB", corner_radius=8, height=40)
         header.pack(fill="x", padx=15, pady=(0, 5))
         header.pack_propagate(False)
 
