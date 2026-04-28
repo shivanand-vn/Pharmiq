@@ -90,3 +90,16 @@ def get_expiring_medicines(distributor_id, days_threshold=90, limit=4):
         LIMIT %s
     """
     return fetch_all(query, (distributor_id, days_threshold, limit))
+
+def get_top_customers(distributor_id, limit=5):
+    """Fetch top customers based on total sales amount."""
+    query = """
+        SELECT c.shop_name as customer_name, SUM(i.grand_total) as total_sales
+        FROM invoices i
+        JOIN customers c ON i.customer_license_no = c.license_no
+        WHERE i.distributor_id = %s
+        GROUP BY i.customer_license_no, c.shop_name
+        ORDER BY total_sales DESC
+        LIMIT %s
+    """
+    return fetch_all(query, (distributor_id, limit))

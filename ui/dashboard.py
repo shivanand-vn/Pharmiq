@@ -18,7 +18,7 @@ from models.distributor import get_distributor_by_id
 from models.invoice import get_invoices_by_distributor
 from models.dashboard_stats import (
     get_kpi_stats, get_sales_trend, get_product_distribution,
-    get_low_stock_list, get_expiring_medicines
+    get_low_stock_list, get_expiring_medicines, get_top_customers
 )
 
 
@@ -142,9 +142,42 @@ class Dashboard(ctk.CTkFrame):
         main_content.columnconfigure(1, weight=3)
         main_content.rowconfigure(1, weight=1)
 
-        # 1. Top Header (minimal spacer)
-        header_frame = ctk.CTkFrame(main_content, fg_color="transparent", height=10)
-        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        # 1. Top Header (Distributor Info)
+        header_frame = ctk.CTkFrame(main_content, fg_color="#FFFFFF", corner_radius=12, border_width=1, border_color="#E5E7EB")
+        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 15))
+        
+        try:
+            dist_info = get_distributor_by_id(self.user["distributor_id"])
+        except Exception:
+            dist_info = {}
+            
+        if dist_info:
+            dist_name = dist_info.get("name", "Unknown Distributor")
+            gst = dist_info.get("gst_no", "N/A")
+            dl = dist_info.get("drug_license_no", "N/A")
+            
+            header_frame.configure(height=110)
+            header_frame.pack_propagate(False)
+            
+            # Left side: Logo
+            logo_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+            logo_frame.pack(side="left", padx=30)
+            
+            logo_path = r"f:\Pharmiq\assets\logos\sv_pharma_logo.png"
+            if os.path.exists(logo_path):
+                img = ctk.CTkImage(light_image=PILImage.open(logo_path), size=(80, 80))
+                ctk.CTkLabel(logo_frame, image=img, text="").pack(expand=True)
+            else:
+                ctk.CTkLabel(logo_frame, text="🏢", font=ctk.CTkFont(size=40)).pack(expand=True)
+            
+            # Center side: Name and details
+            info_center = ctk.CTkFrame(header_frame, fg_color="transparent")
+            info_center.place(relx=0.5, rely=0.5, anchor="center")
+            
+            ctk.CTkLabel(info_center, text=dist_name, font=ctk.CTkFont(size=22, weight="bold"), text_color="#111827").pack()
+            
+            details_text = f"GST: {gst}   •   DL: {dl}"
+            ctk.CTkLabel(info_center, text=details_text, font=ctk.CTkFont(size=13), text_color="#6B7280").pack(pady=(2, 0))
 
         # 2. Split into Left and Right Dash Panels
         left_panel = ctk.CTkFrame(main_content, fg_color="transparent")
@@ -200,8 +233,8 @@ class Dashboard(ctk.CTkFrame):
 
         c1 = ctk.CTkFrame(charts_frame, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         c1.grid(row=0, column=0, sticky="ew", padx=(0, 5))
-        ctk.CTkLabel(c1, text="Sales Trend", font=ctk.CTkFont(size=15, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=15, pady=(15, 5))
-        self._add_line_chart(c1)
+        ctk.CTkLabel(c1, text="Top Customers", font=ctk.CTkFont(size=15, weight="bold"), text_color="#111827", anchor="w").pack(fill="x", padx=15, pady=(15, 5))
+        self._add_top_customers_chart(c1)
 
         c2 = ctk.CTkFrame(charts_frame, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         c2.grid(row=0, column=1, sticky="ew", padx=(5, 0))
@@ -231,8 +264,13 @@ class Dashboard(ctk.CTkFrame):
         ls_accent = ctk.CTkFrame(ls_bg, fg_color="#EF4444", width=4, corner_radius=4)
         ls_accent.pack(side="left", fill="y", pady=2, padx=(2, 0))
         
-        ctk.CTkLabel(ls_bg, text="Low Stock", font=ctk.CTkFont(size=13, weight="bold"), text_color="#B91C1C", anchor="w").pack(side="left", padx=10, pady=8)
-        ctk.CTkLabel(ls_bg, text="⚠️", font=ctk.CTkFont(size=13), text_color="#D32F2F").pack(side="right", padx=10)
+        ls_content = ctk.CTkFrame(ls_bg, fg_color="transparent")
+        ls_content.pack(side="left", fill="both", expand=True)
+
+        ls_title_fr = ctk.CTkFrame(ls_content, fg_color="transparent")
+        ls_title_fr.pack(fill="x")
+        ctk.CTkLabel(ls_title_fr, text="Low Stock", font=ctk.CTkFont(size=13, weight="bold"), text_color="#B91C1C", anchor="w").pack(side="left", padx=10, pady=(8, 4))
+        ctk.CTkLabel(ls_title_fr, text="⚠️", font=ctk.CTkFont(size=13), text_color="#D32F2F").pack(side="right", padx=10)
 
         try:
             ls_items = get_low_stock_list(self.user["distributor_id"])
@@ -240,11 +278,11 @@ class Dashboard(ctk.CTkFrame):
             ls_items = []
             
         if not ls_items:
-            ctk.CTkLabel(notif_frame, text="All products are well stocked! ✅", font=ctk.CTkFont(size=12), text_color="#6B7280").pack(pady=5)
+            ctk.CTkLabel(ls_content, text="All products are well stocked! ✅", font=ctk.CTkFont(size=12), text_color="#6B7280").pack(pady=(0, 10), padx=10, anchor="w")
         else:
             for item in ls_items:
-                it = ctk.CTkFrame(notif_frame, fg_color="transparent")
-                it.pack(fill="x", padx=20, pady=2)
+                it = ctk.CTkFrame(ls_content, fg_color="transparent")
+                it.pack(fill="x", padx=10, pady=(0, 5))
                 p_name = str(item.get("product_name", "Unknown"))[:20] + " -"
                 ctk.CTkLabel(it, text=p_name, font=ctk.CTkFont(size=12), text_color="#4B5563").pack(side="left")
                 ctk.CTkLabel(it, text=f" {item.get('quantity', 0)} left", font=ctk.CTkFont(size=12, weight="bold"), text_color="#D32F2F").pack(side="left")
@@ -256,8 +294,13 @@ class Dashboard(ctk.CTkFrame):
         ex_accent = ctk.CTkFrame(ex_bg, fg_color="#EF4444", width=4, corner_radius=4)
         ex_accent.pack(side="left", fill="y", pady=2, padx=(2, 0))
         
-        ctk.CTkLabel(ex_bg, text="Expiring Medicines", font=ctk.CTkFont(size=13, weight="bold"), text_color="#B91C1C", anchor="w").pack(side="left", padx=10, pady=8)
-        ctk.CTkLabel(ex_bg, text="⚠️", font=ctk.CTkFont(size=13), text_color="#D32F2F").pack(side="right", padx=10)
+        ex_content = ctk.CTkFrame(ex_bg, fg_color="transparent")
+        ex_content.pack(side="left", fill="both", expand=True)
+
+        ex_title_fr = ctk.CTkFrame(ex_content, fg_color="transparent")
+        ex_title_fr.pack(fill="x")
+        ctk.CTkLabel(ex_title_fr, text="Expiring Medicines", font=ctk.CTkFont(size=13, weight="bold"), text_color="#B91C1C", anchor="w").pack(side="left", padx=10, pady=(8, 4))
+        ctk.CTkLabel(ex_title_fr, text="⚠️", font=ctk.CTkFont(size=13), text_color="#D32F2F").pack(side="right", padx=10)
 
         try:
             ex_items = get_expiring_medicines(self.user["distributor_id"])
@@ -265,11 +308,11 @@ class Dashboard(ctk.CTkFrame):
             ex_items = []
             
         if not ex_items:
-            ctk.CTkLabel(notif_frame, text="No items expiring soon. ✅", font=ctk.CTkFont(size=12), text_color="#6B7280").pack(pady=5)
+            ctk.CTkLabel(ex_content, text="No items expiring soon. ✅", font=ctk.CTkFont(size=12), text_color="#6B7280").pack(pady=(0, 10), padx=10, anchor="w")
         else:
             for item in ex_items:
-                it = ctk.CTkFrame(notif_frame, fg_color="transparent")
-                it.pack(fill="x", padx=20, pady=2)
+                it = ctk.CTkFrame(ex_content, fg_color="transparent")
+                it.pack(fill="x", padx=10, pady=(0, 5))
                 p_name = str(item.get("product_name", "Unknown"))[:20] + " -"
                 exp_dt = item.get("expiry_date", "")
                 if hasattr(exp_dt, "strftime"):
@@ -302,40 +345,44 @@ class Dashboard(ctk.CTkFrame):
         else:
              ctk.CTkFrame(um_card, height=45, fg_color="transparent").pack(pady=(0, 15))
 
-    def _add_line_chart(self, parent):
+    def _add_top_customers_chart(self, parent):
         sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0), "figure.facecolor": (0, 0, 0, 0)})
         fig = Figure(figsize=(4.5, 2.2), dpi=100)
         ax = fig.add_subplot(111)
 
         try:
-            trend_data = get_sales_trend(self.user["distributor_id"], limit_months=12)
+            cust_data = get_top_customers(self.user["distributor_id"], limit=5)
         except Exception:
-            trend_data = []
+            cust_data = []
 
-        if trend_data:
-            x = np.arange(len(trend_data))
-            y = [float(row["total"] or 0) for row in trend_data]
-            labels = [row["month_name"] for row in trend_data]
+        if cust_data:
+            labels = [str(row["customer_name"])[:12] for row in cust_data]
+            values = [float(row["total_sales"] or 0) for row in cust_data]
         else:
-            x = np.linspace(0, 10, 100)
-            y = np.sin(x*1.5)*3 + x*1.2 + 5
-            labels = []
+            labels = ['Customer A', 'Customer B', 'Customer C']
+            values = [15000, 10000, 5000]
 
-        sns.lineplot(x=x, y=y, ax=ax, color="#0EA5E9", linewidth=2.5)
-        ax.fill_between(x, y, 0, color="#E0F2FE", alpha=0.4)
+        if not labels:
+            return
 
-        if labels:
-            ax.set_xticks(x)
-            ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=8, color="#6B7280")
-        
-        ax.set_ylabel("Sales (₹)", fontsize=9, color="#6B7280")
+        sns.barplot(x=labels, y=values, ax=ax, palette="viridis", hue=labels, legend=False)
+
+        from matplotlib.ticker import FuncFormatter
+        def lakhs_formatter(x, pos):
+            return f'{x/100000:g}'
+        ax.yaxis.set_major_formatter(FuncFormatter(lakhs_formatter))
+
+        ax.set_ylabel("Sales (₹ Lakhs)", fontsize=9, color="#6B7280")
+        ax.tick_params(axis='x', labelsize=8, colors="#6B7280", rotation=15)
         ax.tick_params(axis='y', labelsize=8, colors="#6B7280")
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_color('#E5E7EB')
         ax.spines['bottom'].set_color('#E5E7EB')
+        
+        ax.grid(axis='y', linestyle='--', alpha=0.4, color="#9CA3AF")
 
-        fig.tight_layout(pad=1)
+        fig.subplots_adjust(bottom=0.25, left=0.2, top=0.9, right=0.95)
         canvas = FigureCanvasTkAgg(fig, master=parent)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=(0, 10))
