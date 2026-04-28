@@ -54,7 +54,7 @@ class ReportsView(ctk.CTkFrame):
         ).pack()
 
     def _build_header(self):
-        header_frame = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=12)
+        header_frame = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         header_frame.grid(row=0, column=0, sticky="ew", padx=25, pady=(25, 10))
         
         ctk.CTkButton(
@@ -66,7 +66,7 @@ class ReportsView(ctk.CTkFrame):
         
         title_lbl = ctk.CTkLabel(
             header_frame, text="📊 Reports & Analytics", 
-            font=ctk.CTkFont(size=22, weight="bold"), text_color="#1F2937"
+            font=ctk.CTkFont(size=22, weight="bold"), text_color="#111827"
         )
         title_lbl.pack(side="left", padx=20, pady=20)
         
@@ -91,19 +91,19 @@ class ReportsView(ctk.CTkFrame):
         self.btn_export_pdf.pack(side="left", padx=5)
 
     def _build_filters(self):
-        self.filter_frame = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=12)
+        self.filter_frame = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         self.filter_frame.grid(row=1, column=0, sticky="ew", padx=25, pady=(0, 15))
         
         top_row = ctk.CTkFrame(self.filter_frame, fg_color="transparent")
         top_row.pack(fill="x", padx=20, pady=(15, 10))
         
         # Report Type Dropdown
-        ctk.CTkLabel(top_row, text="Report Type:", font=ctk.CTkFont(weight="bold"), text_color="#1F2937").pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(top_row, text="Report Type:", font=ctk.CTkFont(weight="bold"), text_color="#111827").pack(side="left", padx=(0, 10))
         self.report_type_menu = ctk.CTkOptionMenu(
             top_row, values=["Sales Report", "Detailed Invoice Report", "Inventory / Stock Report", "Expiry Report", "Return Report"],
             variable=self.current_report_type,
             command=self._on_report_type_change,
-            width=220, fg_color="#F9FAFB", text_color="#1F2937",
+            width=220, fg_color="#F9FAFB", text_color="#111827",
             button_color="#E5E7EB", button_hover_color="#D1D5DB"
         )
         self.report_type_menu.pack(side="left")
@@ -161,7 +161,7 @@ class ReportsView(ctk.CTkFrame):
         # Generate Button
         self.btn_generate = ctk.CTkButton(
             self.bot_row, text="Generate Preview", 
-            fg_color="#3B82F6", hover_color="#2563EB", text_color="#FFFFFF",
+            fg_color="#0EA5E9", hover_color="#0284C7", text_color="#FFFFFF",
             font=ctk.CTkFont(weight="bold"), corner_radius=8,
             command=self._generate_report
         )
@@ -244,7 +244,7 @@ class ReportsView(ctk.CTkFrame):
         async_db_call(self, fetch_filters, (), on_success, on_error)
 
     def _build_table_area(self):
-        table_container = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=12)
+        table_container = ctk.CTkFrame(self, fg_color="#FFFFFF", corner_radius=16, border_width=1, border_color="#E5E7EB")
         table_container.grid(row=2, column=0, sticky="nsew", padx=25, pady=(0, 25))
         
         table_container.columnconfigure(0, weight=1)
@@ -253,7 +253,7 @@ class ReportsView(ctk.CTkFrame):
         # Header for the table
         self.table_lbl = ctk.CTkLabel(
             table_container, text="Data Preview (0 records)", 
-            font=ctk.CTkFont(size=14, weight="bold"), text_color="#374151"
+            font=ctk.CTkFont(size=14, weight="bold"), text_color="#111827"
         )
         self.table_lbl.grid(row=0, column=0, sticky="w", padx=20, pady=(15, 0))
         
@@ -263,7 +263,7 @@ class ReportsView(ctk.CTkFrame):
         style.configure(
             "Reports.Treeview",
             background="#FFFFFF",
-            foreground="#1F2937",
+            foreground="#111827",
             rowheight=35,
             fieldbackground="#FFFFFF",
             borderwidth=0,
@@ -271,12 +271,12 @@ class ReportsView(ctk.CTkFrame):
         )
         style.configure(
             "Reports.Treeview.Heading",
-            background="#F3F4F6",
-            foreground="#374151",
+            background="#F9FAFB",
+            foreground="#111827",
             relief="flat",
             font=("Segoe UI", 11, "bold")
         )
-        style.map("Reports.Treeview", background=[("selected", "#EFF6FF")], foreground=[("selected", "#1D4ED8")])
+        style.map("Reports.Treeview", background=[("selected", "#EFF6FF")], foreground=[("selected", "#0EA5E9")])
         style.map("Reports.Treeview.Heading", background=[('active', '#E5E7EB')])
 
         # Scrollbars
