@@ -127,7 +127,7 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     if distributor.get("gst_no"):
         company_lines.append(Paragraph(f"GSTIN: {distributor['gst_no']}", st["small"]))
     if distributor.get("drug_license_no"):
-        company_lines.append(Paragraph(f"D.L. No: {distributor['drug_license_no']}", st["small"]))
+        company_lines.append(Paragraph(f"License No: {distributor['drug_license_no']}", st["small"]))
 
     company_cell = company_lines
 

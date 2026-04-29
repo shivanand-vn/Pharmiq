@@ -176,7 +176,7 @@ class Dashboard(ctk.CTkFrame):
             
             ctk.CTkLabel(info_center, text=dist_name, font=ctk.CTkFont(size=22, weight="bold"), text_color="#111827").pack()
             
-            details_text = f"GST: {gst}   •   DL: {dl}"
+            details_text = f"GST: {gst}   •   License: {dl}"
             ctk.CTkLabel(info_center, text=details_text, font=ctk.CTkFont(size=13), text_color="#6B7280").pack(pady=(2, 0))
 
         # 2. Split into Left and Right Dash Panels
