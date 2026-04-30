@@ -386,10 +386,10 @@ class LoginWindow(ctk.CTkFrame):
     # FORGOT PASSWORD MODAL
     # ──────────────────────────────────────────────
     def _show_forgot_password(self):
-        """Open the Forgot Password modal."""
+        """Open the Forgot Password modal with a 3-step flow."""
         modal = ctk.CTkToplevel(self)
         modal.title("Reset Password")
-        modal.geometry("440x380")
+        modal.geometry("440x480")
         modal.resizable(False, False)
         modal.configure(fg_color=self.BG_LIGHT)
         modal.grab_set()
@@ -398,7 +398,7 @@ class LoginWindow(ctk.CTkFrame):
         # Center modal on screen
         modal.update_idletasks()
         x = (modal.winfo_screenwidth() - 440) // 2
-        y = (modal.winfo_screenheight() - 380) // 2
+        y = (modal.winfo_screenheight() - 480) // 2
         modal.geometry(f"+{x}+{y}")
 
         # Modal card
@@ -416,43 +416,46 @@ class LoginWindow(ctk.CTkFrame):
         header_row = ctk.CTkFrame(inner, fg_color="transparent")
         header_row.pack(fill="x")
 
-        ctk.CTkLabel(
+        title_label = ctk.CTkLabel(
             header_row, text="Reset Password",
             font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
             text_color=self.TEXT_PRIMARY,
-        ).pack(side="left")
+        )
+        title_label.pack(side="left")
 
-        ctk.CTkButton(
-            header_row, text="✕",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            width=32, height=32,
-            fg_color="transparent",
-            hover_color="#FEE2E2",
-            text_color=self.TEXT_SECONDARY,
-            corner_radius=8,
-            command=modal.destroy,
-        ).pack(side="right")
+        # X button removed as per user request to avoid conflict with window controls
 
-        ctk.CTkLabel(
+        desc_label = ctk.CTkLabel(
             inner,
-            text="Enter your username or email address\nand we'll help you reset your password.",
+            text="Enter your registered email address\nand we'll help you reset your password.",
             font=ctk.CTkFont(size=13),
             text_color=self.TEXT_SECONDARY,
             anchor="w",
             justify="left",
-        ).pack(anchor="w", pady=(8, 24))
+        )
+        desc_label.pack(anchor="w", pady=(8, 24))
 
-        # Input field
+        # Dynamic Content Frame
+        content_frame = ctk.CTkFrame(inner, fg_color="transparent")
+        content_frame.pack(fill="both", expand=True)
+        
+        # State variables
+        self._fp_user_id = None
+        self._fp_otp_verified = False
+
+        # --- STEP 1: Email/Username Input ---
+        step1_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        
         ctk.CTkLabel(
-            inner, text="Username or Email",
+            step1_frame, text="Email",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self.TEXT_PRIMARY, anchor="w",
         ).pack(anchor="w")
 
         reset_container = ctk.CTkFrame(
-            inner, fg_color=self.INPUT_BG,
+            step1_frame, fg_color=self.INPUT_BG,
             corner_radius=10, border_width=1.5,
-            border_color=self.INPUT_BORDER, height=44,
+            border_color=self.INPUT_BORDER, height=40,
         )
         reset_container.pack(fill="x", pady=(6, 0))
         reset_container.pack_propagate(False)
@@ -465,63 +468,242 @@ class LoginWindow(ctk.CTkFrame):
 
         reset_entry = ctk.CTkEntry(
             reset_container,
-            placeholder_text="Enter username or email",
+            placeholder_text="Enter the registered mailid",
             font=ctk.CTkFont(size=13),
             fg_color="transparent", border_width=0,
             text_color=self.TEXT_PRIMARY, height=40,
         )
         self._place_entry(reset_entry, left=40, right=10)
 
-        # Focus animation for modal input
         reset_entry.bind("<FocusIn>", lambda e: self._on_focus_in(reset_container))
         reset_entry.bind("<FocusOut>", lambda e: self._on_focus_out(reset_container))
 
-        # Status label in modal
-        modal_status = ctk.CTkLabel(
-            inner, text="",
+        step1_status = ctk.CTkLabel(
+            step1_frame, text="",
             font=ctk.CTkFont(size=12),
             text_color=self.ERROR_COLOR,
             wraplength=340,
         )
-        modal_status.pack(pady=(12, 0))
+        step1_status.pack(pady=(12, 0))
 
-        def _on_reset():
+        # --- STEP 2: OTP Input ---
+        step2_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        
+        ctk.CTkLabel(
+            step2_frame, text="Enter 6-Digit OTP",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=self.TEXT_PRIMARY, anchor="w",
+        ).pack(anchor="w")
+
+        otp_container = ctk.CTkFrame(
+            step2_frame, fg_color=self.INPUT_BG,
+            corner_radius=10, border_width=1.5,
+            border_color=self.INPUT_BORDER, height=44,
+        )
+        otp_container.pack(fill="x", pady=(6, 0))
+        otp_container.pack_propagate(False)
+
+        ctk.CTkLabel(
+            otp_container, text="🔑",
+            font=ctk.CTkFont(size=14),
+            text_color=self.TEXT_MUTED, fg_color="transparent",
+        ).place(x=14, rely=0.5, anchor="w")
+
+        otp_entry = ctk.CTkEntry(
+            otp_container,
+            placeholder_text="Enter OTP",
+            font=ctk.CTkFont(size=13),
+            fg_color="transparent", border_width=0,
+            text_color=self.TEXT_PRIMARY, height=40,
+        )
+        self._place_entry(otp_entry, left=40, right=10)
+        otp_entry.bind("<FocusIn>", lambda e: self._on_focus_in(otp_container))
+        otp_entry.bind("<FocusOut>", lambda e: self._on_focus_out(otp_container))
+
+        step2_status = ctk.CTkLabel(
+            step2_frame, text="",
+            font=ctk.CTkFont(size=12),
+            text_color=self.ERROR_COLOR,
+            wraplength=340,
+        )
+        step2_status.pack(pady=(12, 0))
+
+        # --- STEP 3: Reset Password Input ---
+        step3_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+
+        ctk.CTkLabel(
+            step3_frame, text="New Password",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=self.TEXT_PRIMARY, anchor="w",
+        ).pack(anchor="w")
+
+        new_pw_container = ctk.CTkFrame(
+            step3_frame, fg_color=self.INPUT_BG,
+            corner_radius=10, border_width=1.5,
+            border_color=self.INPUT_BORDER, height=44,
+        )
+        new_pw_container.pack(fill="x", pady=(6, 0))
+        new_pw_container.pack_propagate(False)
+        ctk.CTkLabel(
+            new_pw_container, text="🔒",
+            font=ctk.CTkFont(size=14),
+            text_color=self.TEXT_MUTED, fg_color="transparent",
+        ).place(x=14, rely=0.5, anchor="w")
+        new_pw_entry = ctk.CTkEntry(
+            new_pw_container, placeholder_text="New Password", show="●",
+            font=ctk.CTkFont(size=13), fg_color="transparent", border_width=0,
+            text_color=self.TEXT_PRIMARY, height=40,
+        )
+        self._place_entry(new_pw_entry, left=40, right=10)
+        new_pw_entry.bind("<FocusIn>", lambda e: self._on_focus_in(new_pw_container))
+        new_pw_entry.bind("<FocusOut>", lambda e: self._on_focus_out(new_pw_container))
+
+        ctk.CTkLabel(
+            step3_frame, text="Confirm Password",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=self.TEXT_PRIMARY, anchor="w",
+        ).pack(anchor="w", pady=(12, 0))
+
+        confirm_pw_container = ctk.CTkFrame(
+            step3_frame, fg_color=self.INPUT_BG,
+            corner_radius=10, border_width=1.5,
+            border_color=self.INPUT_BORDER, height=44,
+        )
+        confirm_pw_container.pack(fill="x", pady=(6, 0))
+        confirm_pw_container.pack_propagate(False)
+        ctk.CTkLabel(
+            confirm_pw_container, text="🔒",
+            font=ctk.CTkFont(size=14),
+            text_color=self.TEXT_MUTED, fg_color="transparent",
+        ).place(x=14, rely=0.5, anchor="w")
+        confirm_pw_entry = ctk.CTkEntry(
+            confirm_pw_container, placeholder_text="Confirm Password", show="●",
+            font=ctk.CTkFont(size=13), fg_color="transparent", border_width=0,
+            text_color=self.TEXT_PRIMARY, height=40,
+        )
+        self._place_entry(confirm_pw_entry, left=40, right=10)
+        confirm_pw_entry.bind("<FocusIn>", lambda e: self._on_focus_in(confirm_pw_container))
+        confirm_pw_entry.bind("<FocusOut>", lambda e: self._on_focus_out(confirm_pw_container))
+
+        step3_status = ctk.CTkLabel(
+            step3_frame, text="",
+            font=ctk.CTkFont(size=12),
+            text_color=self.ERROR_COLOR,
+            wraplength=340,
+        )
+        step3_status.pack(pady=(12, 0))
+
+        # Show Step 1 initially
+        step1_frame.pack(fill="both", expand=True)
+
+        # Buttons Frame
+        btn_frame = ctk.CTkFrame(inner, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=(16, 0))
+
+        # Navigation and Action Logic
+        def _on_step1():
             value = reset_entry.get().strip()
             if not value:
-                modal_status.configure(
-                    text="⚠ Please enter your username or email address.",
-                    text_color=self.ERROR_COLOR,
-                )
+                step1_status.configure(text="⚠ Please enter your email.", text_color=self.ERROR_COLOR)
+                return
+                
+            import re
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value):
+                step1_status.configure(text="⚠ Please enter a valid email (e.g., abc@gmail.com).", text_color=self.ERROR_COLOR)
                 return
 
-            # Show success
-            reset_btn.configure(state="disabled", text="Sending...")
+            action_btn.configure(state="disabled", text="Sending...")
             modal.update()
+            
+            # Initiate reset process
+            from services.auth_service import initiate_password_reset
+            res = initiate_password_reset(value)
+            
+            if res.get("status") == "success":
+                self._fp_user_id = res.get("user_id")
+                # Transition to step 2
+                step1_frame.pack_forget()
+                step2_frame.pack(fill="both", expand=True)
+                title_label.configure(text="Verify OTP")
+                desc_label.configure(text=f"An OTP has been sent to your email.\nPlease enter it below.")
+                action_btn.configure(state="normal", text="Verify OTP")
+                action_btn.configure(command=_on_step2)
+            else:
+                step1_status.configure(text=f"⚠ {res.get('message', 'Failed to send OTP')}", text_color=self.ERROR_COLOR)
+                action_btn.configure(state="normal", text="Send Reset Request")
 
-            aid = modal.after(800, lambda: _show_success(value))
-            self._after_ids.append(aid)
+        def _on_step2():
+            otp = otp_entry.get().strip()
+            if not otp:
+                step2_status.configure(text="⚠ Please enter the OTP.", text_color=self.ERROR_COLOR)
+                return
+                
+            if not self._fp_user_id:
+                step2_status.configure(text="⚠ Internal error: User not found.", text_color=self.ERROR_COLOR)
+                return
+                
+            action_btn.configure(state="disabled", text="Verifying...")
+            modal.update()
+            
+            from services.auth_service import verify_otp
+            res = verify_otp(self._fp_user_id, otp)
+            
+            if res.get("status") == "success":
+                step2_frame.pack_forget()
+                step3_frame.pack(fill="both", expand=True)
+                title_label.configure(text="Set New Password")
+                desc_label.configure(text="Please enter your new secure password.")
+                action_btn.configure(state="normal", text="Reset Password")
+                action_btn.configure(command=_on_step3)
+            else:
+                step2_status.configure(text=f"⚠ {res.get('message', 'Invalid OTP')}", text_color=self.ERROR_COLOR)
+                action_btn.configure(state="normal", text="Verify OTP")
 
-        def _show_success(value):
-            modal_status.configure(
-                text=f"✓ Password reset request sent for '{value}'.\n"
-                     f"Please contact your administrator to complete the reset.",
-                text_color=self.SUCCESS_COLOR,
-            )
-            reset_btn.configure(state="normal", text="Send Reset Request")
+        def _on_step3():
+            new_pw = new_pw_entry.get()
+            confirm_pw = confirm_pw_entry.get()
+            
+            if not new_pw or not confirm_pw:
+                step3_status.configure(text="⚠ Please fill in both password fields.", text_color=self.ERROR_COLOR)
+                return
+                
+            if new_pw != confirm_pw:
+                step3_status.configure(text="⚠ Passwords do not match.", text_color=self.ERROR_COLOR)
+                return
+                
+            if len(new_pw) < 6:
+                step3_status.configure(text="⚠ Password must be at least 6 characters.", text_color=self.ERROR_COLOR)
+                return
+                
+            action_btn.configure(state="disabled", text="Resetting...")
+            modal.update()
+            
+            from services.auth_service import reset_password
+            res = reset_password(self._fp_user_id, new_pw)
+            
+            if res.get("status") == "success":
+                step3_status.configure(text="✓ Password reset successfully! You can now log in.", text_color=self.SUCCESS_COLOR)
+                action_btn.configure(text="Close", command=modal.destroy, state="normal")
+            else:
+                step3_status.configure(text=f"⚠ {res.get('message', 'Reset failed')}", text_color=self.ERROR_COLOR)
+                action_btn.configure(state="normal", text="Reset Password")
 
-        # Reset button
-        reset_btn = ctk.CTkButton(
-            inner, text="Send Reset Request",
+        # Action button
+        action_btn = ctk.CTkButton(
+            btn_frame, text="Send Reset Request",
             font=ctk.CTkFont(size=14, weight="bold"),
             fg_color=self.PRIMARY,
             hover_color=self.PRIMARY_HOVER,
             text_color="#FFFFFF",
             height=44, corner_radius=12,
-            command=_on_reset,
+            command=_on_step1,
         )
-        reset_btn.pack(fill="x", pady=(16, 0))
+        action_btn.pack(fill="x")
 
-        reset_entry.bind("<Return>", lambda e: _on_reset())
+        # Key bindings
+        reset_entry.bind("<Return>", lambda e: _on_step1() if action_btn.cget("text") == "Send Reset Request" else None)
+        otp_entry.bind("<Return>", lambda e: _on_step2() if action_btn.cget("text") == "Verify OTP" else None)
+        confirm_pw_entry.bind("<Return>", lambda e: _on_step3() if action_btn.cget("text") == "Reset Password" else None)
 
     # ──────────────────────────────────────────────
     # LOGIN LOGIC (UNCHANGED)
@@ -538,18 +720,21 @@ class LoginWindow(ctk.CTkFrame):
         self.status_label.configure(text="")
         self.update()
 
-        hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
-
         try:
             user = fetch_one(
                 """
-                SELECT u.user_id, u.distributor_id, u.username, u.status
+                SELECT u.user_id, u.distributor_id, u.username, u.password, u.status
                 FROM users u
-                WHERE u.username = %s AND u.password = %s AND u.status = 'active'
+                WHERE u.username = %s AND u.status = 'active'
                 """,
-                (username, hashed_password),
+                (username,),
             )
-            if user:
+            
+            from services.auth_service import verify_password
+            
+            if user and verify_password(user["password"], password):
+                # Remove password hash from dictionary
+                del user["password"]
                 roles = get_user_roles(user["user_id"])
                 user["role"] = roles[0] if roles else "Admin"
                 user["roles"] = roles
