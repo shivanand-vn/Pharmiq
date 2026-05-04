@@ -158,8 +158,27 @@ def generate_invoice_pdf(invoice, distributor, customer, output_path=None):
     party_lines.append(Paragraph(f"<b>{customer.get('license_holder_name', '')}</b>", st["normal_bold"]))
     if customer.get("shop_name"):
         party_lines.append(Paragraph(customer["shop_name"], st["small"]))
-    if customer.get("address"):
-        party_lines.append(Paragraph(customer["address"], st["small"]))
+    # Format Customer Address from structured fields
+    customer_addr_lines = []
+    line1 = customer.get("address_line1", "")
+    line2 = customer.get("address_line2", "")
+    if line1: customer_addr_lines.append(line1)
+    if line2: customer_addr_lines.append(line2)
+
+    city_parts = []
+    if customer.get("city"): city_parts.append(customer["city"])
+    if customer.get("dist"): city_parts.append(customer["dist"])
+    if customer.get("state"): city_parts.append(customer["state"])
+    if customer.get("pincode"): 
+        city_line = ", ".join(city_parts)
+        city_parts = [f"{city_line} - {customer['pincode']}"] if city_line else [customer['pincode']]
+    else:
+        city_parts = [", ".join(city_parts)] if city_parts else []
+
+    if city_parts: customer_addr_lines.extend(city_parts)
+
+    for addr_line in customer_addr_lines:
+        party_lines.append(Paragraph(addr_line, st["small"]))
     if customer.get("mobile_no"):
         party_lines.append(Paragraph(f"PHONE: {customer['mobile_no']}", st["small"]))
     if customer.get("gst_no"):

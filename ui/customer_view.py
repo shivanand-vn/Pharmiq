@@ -78,7 +78,15 @@ class CustomerView(ctk.CTkFrame):
     def _safe_focus(self, widget):
         """Defensively attempt focus to prevent 'bad window path' errors."""
         try:
-            if self.winfo_exists() and self.winfo_viewable() and widget and widget.winfo_exists() and widget.winfo_viewable():
+            if (self.winfo_exists() and self.winfo_viewable() and 
+                widget and widget.winfo_exists()):
+                
+                try:
+                    if hasattr(widget, "_entry") and not widget._entry.winfo_exists():
+                        return
+                except Exception:
+                    pass
+
                 widget.focus()
         except Exception:
             pass # Suppress TclErrors from stale widgets

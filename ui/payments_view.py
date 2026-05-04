@@ -66,10 +66,20 @@ class PaymentsView(ctk.CTkFrame):
             self._after_ids.clear()
 
     def _safe_focus(self, widget):
+        """Defensively attempt focus to prevent 'bad window path' errors."""
         try:
-            if self.winfo_exists() and widget and widget.winfo_exists():
+            if (self.winfo_exists() and self.winfo_viewable() and 
+                widget and widget.winfo_exists()):
+                
+                try:
+                    if hasattr(widget, "_entry") and not widget._entry.winfo_exists():
+                        return
+                except Exception:
+                    pass
+
                 widget.focus()
-        except: pass
+        except Exception:
+            pass # Suppress TclErrors from stale widgets
 
     def _build_main_content(self):
         content = ctk.CTkFrame(self, fg_color="transparent")
@@ -238,10 +248,10 @@ class PaymentsView(ctk.CTkFrame):
         for inv in invoices[:5]: # Show last 5
             row = ctk.CTkFrame(container, fg_color="transparent", height=30)
             row.pack(fill="x")
-            ctk.CTkLabel(row, text=inv["invoice_no"], width=80, anchor="w", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=inv["invoice_no"], width=80, anchor="w", font=ctk.CTkFont(size=11), text_color="#111827").pack(side="left", padx=5)
             dt = inv["invoice_date"]
             if hasattr(dt, "strftime"): dt = dt.strftime("%d/%m/%y")
-            ctk.CTkLabel(row, text=dt, width=80, anchor="w", font=ctk.CTkFont(size=11)).pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=dt, width=80, anchor="w", font=ctk.CTkFont(size=11), text_color="#111827").pack(side="left", padx=5)
             
             st = inv["status"]
             txt_c = "#059669" if st=="Paid" else "#D97706" if st=="Partial" else "#DC2626"

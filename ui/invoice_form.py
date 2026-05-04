@@ -130,10 +130,21 @@ class InvoiceForm(ctk.CTkFrame):
     def _safe_focus(self, widget):
         """Defensively attempt focus to prevent 'bad window path' errors."""
         try:
-            if self.winfo_exists() and self.winfo_viewable() and widget and widget.winfo_exists() and widget.winfo_viewable():
+            # Dual validation: Check existence and mapping of both self and the target widget
+            if (self.winfo_exists() and self.winfo_viewable() and 
+                widget and widget.winfo_exists()):
+                
+                # Further check: is the widget's internal 'entry' (if it's a CTkEntry) still valid?
+                # The TclError often happens at the Tcl level for the sub-widget path.
+                try:
+                    if hasattr(widget, "_entry") and not widget._entry.winfo_exists():
+                        return
+                except Exception:
+                    pass
+
                 widget.focus()
-        except Exception:
-            pass # Suppress TclErrors from stale widgets
+        except (ctk.TclError, Exception):
+            pass # Suppress errors from stale widgets or race conditions
 
     # ─────────────────────────────────────────────────────────────
     #  HEADER (Invoice Details)
@@ -456,9 +467,18 @@ class InvoiceForm(ctk.CTkFrame):
                 command=lambda p=prod, pp=popup: self._select_product(row_data, p, pp),
             )
             btn.pack(fill="x", padx=4, pady=2)
-        popup.bind("<FocusOut>", lambda e: popup.destroy())
+        popup.bind("<FocusOut>", lambda e: self._safe_destroy_popup(popup))
         try:
-            popup.focus_set()
+            if popup.winfo_exists():
+                popup.focus_set()
+        except Exception:
+            pass
+
+    def _safe_destroy_popup(self, popup):
+        """Safely destroy a popup if it still exists."""
+        try:
+            if popup and popup.winfo_exists():
+                popup.destroy()
         except Exception:
             pass
 
