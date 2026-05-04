@@ -102,7 +102,7 @@ class InvoiceForm(ctk.CTkFrame):
         if aid: self._after_ids.append(aid)
 
     def _on_shift_enter(self, event=None):
-        if self.winfo_exists():
+        if self.winfo_exists() and self.winfo_viewable():
             self._add_product_row()
 
     def _on_destroy(self, event=None):
@@ -130,7 +130,7 @@ class InvoiceForm(ctk.CTkFrame):
     def _safe_focus(self, widget):
         """Defensively attempt focus to prevent 'bad window path' errors."""
         try:
-            if self.winfo_exists() and widget and widget.winfo_exists():
+            if self.winfo_exists() and self.winfo_viewable() and widget and widget.winfo_exists() and widget.winfo_viewable():
                 widget.focus()
         except Exception:
             pass # Suppress TclErrors from stale widgets
@@ -426,6 +426,9 @@ class InvoiceForm(ctk.CTkFrame):
     #  PRODUCT SEARCH / SELECT
     # ─────────────────────────────────────────────────────────────
     def _on_product_search(self, event, row_data):
+        if not self.winfo_exists() or not row_data.get("product_entry") or not row_data["product_entry"].winfo_exists():
+            return
+
         query = row_data["product_entry"].get().strip()
         if len(query) < 2: return
         try: results = search_products(self.user["distributor_id"], query)
@@ -493,6 +496,9 @@ class InvoiceForm(ctk.CTkFrame):
     #  CUSTOMER SEARCH / SELECT
     # ─────────────────────────────────────────────────────────────
     def _on_customer_search(self, event=None):
+        if not self.winfo_exists() or not self.cust_search.winfo_exists():
+            return
+
         query = self.cust_search.get().strip()
         if len(query) < 2:
             if self._cust_popup:

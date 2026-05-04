@@ -56,9 +56,12 @@ class LoginWindow(ctk.CTkFrame):
             self._after_ids.clear()
 
     def _safe_focus(self, widget):
-        if self.winfo_exists() and widget and widget.winfo_exists():
-            try: widget.focus()
-            except Exception: pass
+        """Defensively attempt focus to prevent 'bad window path' errors."""
+        try:
+            if self.winfo_exists() and self.winfo_viewable() and widget and widget.winfo_exists() and widget.winfo_viewable():
+                widget.focus()
+        except Exception:
+            pass # Suppress TclErrors from stale widgets
 
     def _build_ui(self):
         """Build the split-layout login interface."""

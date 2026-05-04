@@ -59,10 +59,10 @@ class InventoryView(ctk.CTkFrame):
     def _safe_focus(self, widget):
         """Defensively attempt focus to prevent 'bad window path' errors."""
         try:
-            if self.winfo_exists() and widget and widget.winfo_exists():
+            if self.winfo_exists() and self.winfo_viewable() and widget and widget.winfo_exists() and widget.winfo_viewable():
                 widget.focus()
         except Exception:
-            pass
+            pass # Suppress TclErrors from stale widgets
 
     def _build_ui(self):
         # -- Top bar --

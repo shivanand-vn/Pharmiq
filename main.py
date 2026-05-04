@@ -71,6 +71,14 @@ class PharmIQApp(ctk.CTk):
             self.current_frame.destroy()
             self.current_frame = None
 
+        # Destroy all cached views to stop pending tasks and free memory
+        for view in self.cached_views.values():
+            try:
+                view.destroy()
+            except Exception:
+                pass
+        self.cached_views.clear()
+
         # Show login window directly in main frame
         self.current_frame = LoginWindow(self, on_login_success=self._on_login)
         self.current_frame.pack(fill="both", expand=True)
