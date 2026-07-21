@@ -30,3 +30,13 @@ ENV/
 logs/
 *.log
 Invoice/
+# Trash folders
+Trash/
+trash/
+
+# Output and build/dist folders
+output/
+.dist/
+
+# Local session/settings cache
+.remember_me.json
